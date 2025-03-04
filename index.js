@@ -1,3 +1,5 @@
+const path = require("path"); // ✅ FIX: Import the 'path' module
+const fs = require("fs");
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ActivityType} = require('discord.js');
 const keepAlive = require(`./server`);
 // const express = require('express');
