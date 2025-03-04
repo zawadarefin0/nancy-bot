@@ -18,6 +18,7 @@
   "homepage": "https://github.com/zawadarefin/nancy-bot#readme",
   "description": "",
   "dependencies": {
+    "discord.js": "^14.18.0",
     "express": "^4.21.2"
   }
 }
