@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ActivityType} = require('discord.js');
-const express = require('express');
-const app = express();
+const keepAlive = require(`./server`);
+// const express = require('express');
+// const app = express();
 
 
 
@@ -29,6 +30,20 @@ client.once('ready', () => {
 client.on('messageCreate', (message) => {
     if (message.content === '!ping') {
         message.channel.send('Pong!');
+    }
+});
+
+
+
+client.on('messageCreate', (message) => {
+    if (message.content === '!ntimetable') {
+        message.channel.send('https://cdn.discordapp.com/attachments/1345359086593507341/1346016809958244394/IMG_4054.png?ex=67c6a757&is=67c555d7&hm=60072e21b1cb675d2bb420b855e420a81da4437f818dbbedbdf18d3a8ef87140&format=webp&quality=lossless&width=1010&height=757');
+    }
+});
+
+client.on('messageCreate', (message) => {
+    if (message.content === '!ztimetable') {
+        message.channel.send('https://media.discordapp.net/attachments/1345359086593507341/1346085487269515326/VDGgNVF70inBvx72egUr-1.png?ex=67c6e74d&is=67c595cd&hm=6ae6df738782c629ae3641b98ef2ce8e440ce6c3f8dd732386be2233c4218189&=&format=webp&quality=lossless&width=738&height=757');
     }
 });
 
@@ -463,12 +478,14 @@ function generateTodoDropdown(userId) {
 
 client.login(process.env.TOKEN);
 
+keepAlive();
 
-app.get('/', (req, res) => {
-    console.log(`Received request from: ${req.headers.host}`);
-    res.send('Bot is running!');
-});
 
-app.listen(3000, () => {
-    console.log('Web server started');
-});
+// app.get('/', (req, res) => {
+//     console.log(`Received request from: ${req.headers.host}`);
+//     res.send('Bot is running!');
+// });
+
+// app.listen(3000, () => {
+//     console.log('Web server started');
+// });
