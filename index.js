@@ -104,8 +104,10 @@ client.on('messageCreate', (message) => {
                 { name: '!duration', value: 'Check the duration of the current call you are in.' },
                 { name: '!zawad', value: 'Send a message: "I love Nancy!"' },
                 { name: '!nancy', value: 'Send a message: "I love Zawad!"' },
-                { name: '!todo [item1] [item2]', value: 'Add tasks to your Todo list.' },
-                { name: '!todo view', value: 'View your current Todo list.' }
+                { name: '!createtodo', value: 'Create your empty todo-list' },
+                { name: '!viewtodo', value: 'View your current Todo list.' },
+                { name: '!addtodo [item]', value: 'Add a singular item to your todolist'},
+                { name: '!deletetodo', value: "Delete your todo-list"}
             )
             .setTimestamp()
             .setFooter({ text: 'Bot Commands', iconURL: message.author.displayAvatarURL() });
@@ -374,104 +376,218 @@ client.on('messageCreate', (message) => {
 });
 
 
+// New Todolist
+const TODO_FILE = path.join(__dirname, "todolist.json");
 
+// Load existing to-do lists from file
 let todoLists = {};
+if (fs.existsSync(TODO_FILE)) {
+  todoLists = JSON.parse(fs.readFileSync(TODO_FILE, "utf8"));
+}
 
-client.on('messageCreate', async (message) => {
-    if (!message.content.startsWith('!todo')) return;
+// Save to-do lists to file
+function saveTodoLists() {
+  fs.writeFileSync(TODO_FILE, JSON.stringify(todoLists, null, 2));
+}
 
-    const args = message.content.match(/\[(.*?)\]/g);
-    const userId = message.author.id;
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+  const args = message.content.split(" ");
+  const command = args.shift().toLowerCase();
+  const userId = message.author.id;
 
-    // Handle the case when no arguments are passed
-    if (!args) {
-        // Check if the command is to view the todo list
-        if (message.content === '!todo view') {
-            if (!todoLists[userId] || todoLists[userId].length === 0) {
-                return message.channel.send({ embeds: [new EmbedBuilder().setColor(0xff0000).setTitle('Your Todo List is Empty!')] });
-            }
-            return sendTodoList(message, userId);
-        }
-        return;
+  // Create a to-do list
+  if (command === "!createtodo") {
+    if (todoLists[userId]) {
+      return message.reply("You already have a to-do list!");
+    }
+    todoLists[userId] = { items: [], completed: [] };
+    saveTodoLists();
+    return message.reply("Your to-do list has been created!");
+  }
+
+  // Add item to to-do list
+  if (command === "!addtodo") {
+    if (!todoLists[userId]) {
+      return message.reply("You don't have a to-do list! Use `!createtodo` first.");
+    }
+    const item = args.join(" ");
+    if (!item) return message.reply("Please specify an item to add.");
+    todoLists[userId].items.push(item);
+    saveTodoLists();
+    return message.reply(`Added "${item}" to your to-do list.`);
+  }
+
+  // View to-do list with interactive selection
+  if (command === "!viewtodo") {
+    if (!todoLists[userId]) {
+      return message.reply("You don't have a to-do list! Use `!createtodo` first.");
+    }
+    const items = todoLists[userId].items;
+    if (items.length === 0) {
+      return message.reply("Your to-do list is empty.");
     }
 
-    // Extract tasks from the brackets
-    const tasks = args.map(task => task.replace(/\[|\]/g, ''));
+    // Create a select menu with the user's tasks
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`select_todo_${userId}`) // Associate with user ID
+      .setPlaceholder("Select an item to complete")
+      .addOptions(
+        items.map((item, index) => ({
+          label: item,
+          value: index.toString(),
+        }))
+      );
 
-    // If the user doesn't have a to-do list, create one
-    todoLists[userId] = tasks.map(task => ({ text: task, checked: false }));
-
-    return sendTodoList(message, userId);
+    const row = new ActionRowBuilder().addComponents(selectMenu);
+    return message.reply({ content: "Select a task to mark as completed:", components: [row] });
+  }
 });
 
-client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isStringSelectMenu()) return;
+// Handle interactions with the select menu
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isStringSelectMenu()) return;
 
-    const userId = interaction.user.id;
-    const selectedIndex = parseInt(interaction.values[0]);
+  const userId = interaction.user.id;
+  const customId = interaction.customId;
 
-    // Ensure that the user has a to-do list
-    if (!todoLists[userId]) {
-        return interaction.reply({ content: "You don't have a to-do list yet.", ephemeral: true });
+  // Ensure the interaction is for checking off to-do items
+  if (customId.startsWith("select_todo_")) {
+    const ownerId = customId.replace("select_todo_", "");
+
+    // Prevent other users from interacting with someone else's list
+    if (userId !== ownerId) {
+      return interaction.reply({ content: "You can only complete items from your own to-do list!", ephemeral: true });
     }
 
-    // Prevent the user from interacting with another user's to-do list
-    const creatorId = todoLists[userId].creatorId;
-
-    // If the to-do list was created by someone else, prevent interaction
-    if (creatorId && creatorId !== userId) {
-        return interaction.reply({ content: "You can't modify someone else's to-do list!", ephemeral: true });
+    const selectedIndex = parseInt(interaction.values[0], 10);
+    if (!todoLists[userId] || selectedIndex < 0 || selectedIndex >= todoLists[userId].items.length) {
+      return interaction.reply({ content: "Invalid selection.", ephemeral: true });
     }
 
-    // Ensure the selected index is within range
-    if (selectedIndex < 0 || selectedIndex >= todoLists[userId].length) {
-        return interaction.reply({ content: "Invalid task selection.", ephemeral: true });
-    }
+    // Move the selected item to the completed list
+    const item = todoLists[userId].items.splice(selectedIndex, 1)[0];
+    todoLists[userId].completed.push(item);
+    saveTodoLists();
 
-    // Toggle task completion
-    todoLists[userId][selectedIndex].checked = !todoLists[userId][selectedIndex].checked;
-
-    // Update the message with the updated to-do list
-    await interaction.update({ embeds: [generateTodoEmbed(userId)], components: [generateTodoDropdown(userId)] });
+    return interaction.reply({ content: `Marked "${item}" as completed!` });
+  }
 });
 
-function sendTodoList(message, userId) {
-    // Assign the userId as the creatorId of the to-do list
+// Delete to-do list
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+  const command = message.content.toLowerCase();
+  const userId = message.author.id;
+
+  if (command === "!deletetodo") {
     if (!todoLists[userId]) {
-        todoLists[userId] = [];
+      return message.reply("You don't have a to-do list.");
     }
-    todoLists[userId].creatorId = userId;
+    delete todoLists[userId];
+    saveTodoLists();
+    return message.reply("Your to-do list has been deleted.");
+  }
+});
 
-    return message.channel.send({
-        embeds: [generateTodoEmbed(userId)],
-        components: [generateTodoDropdown(userId)]
-    });
-}
 
-function generateTodoEmbed(userId) {
-    const list = todoLists[userId]
-        .map((task, index) => `${task.checked ? '✅' : '❌'} **${index + 1}.** ${task.checked ? `~~${task.text}~~` : task.text}`)
-        .join('\n');
+// let todoLists = {};
 
-    return new EmbedBuilder()
-        .setColor(0xbccda6)
-        .setTitle('Your Todo List')
-        .setDescription(list || 'No tasks available.')
-        .setFooter({ text: 'Use the dropdown below to check off items!' });
-}
+// client.on('messageCreate', async (message) => {
+//     if (!message.content.startsWith('!todo')) return;
 
-function generateTodoDropdown(userId) {
-    const menu = new StringSelectMenuBuilder()
-        .setCustomId('todo_select')
-        .setPlaceholder('Select a task to mark as done')
-        .addOptions(todoLists[userId].map((task, index) => ({
-            label: task.text,
-            value: index.toString(),
-            description: task.checked ? 'Checked' : 'Unchecked'
-        })));
+//     const args = message.content.match(/\[(.*?)\]/g);
+//     const userId = message.author.id;
 
-    return new ActionRowBuilder().addComponents(menu);
-}
+//     // Handle the case when no arguments are passed
+//     if (!args) {
+//         // Check if the command is to view the todo list
+//         if (message.content === '!todo view') {
+//             if (!todoLists[userId] || todoLists[userId].length === 0) {
+//                 return message.channel.send({ embeds: [new EmbedBuilder().setColor(0xff0000).setTitle('Your Todo List is Empty!')] });
+//             }
+//             return sendTodoList(message, userId);
+//         }
+//         return;
+//     }
+
+//     // Extract tasks from the brackets
+//     const tasks = args.map(task => task.replace(/\[|\]/g, ''));
+
+//     // If the user doesn't have a to-do list, create one
+//     todoLists[userId] = tasks.map(task => ({ text: task, checked: false }));
+
+//     return sendTodoList(message, userId);
+// });
+
+// client.on('interactionCreate', async (interaction) => {
+//     if (!interaction.isStringSelectMenu()) return;
+
+//     const userId = interaction.user.id;
+//     const selectedIndex = parseInt(interaction.values[0]);
+
+//     // Ensure that the user has a to-do list
+//     if (!todoLists[userId]) {
+//         return interaction.reply({ content: "You don't have a to-do list yet.", ephemeral: true });
+//     }
+
+//     // Prevent the user from interacting with another user's to-do list
+//     const creatorId = todoLists[userId].creatorId;
+
+//     // If the to-do list was created by someone else, prevent interaction
+//     if (creatorId && creatorId !== userId) {
+//         return interaction.reply({ content: "You can't modify someone else's to-do list!", ephemeral: true });
+//     }
+
+//     // Ensure the selected index is within range
+//     if (selectedIndex < 0 || selectedIndex >= todoLists[userId].length) {
+//         return interaction.reply({ content: "Invalid task selection.", ephemeral: true });
+//     }
+
+//     // Toggle task completion
+//     todoLists[userId][selectedIndex].checked = !todoLists[userId][selectedIndex].checked;
+
+//     // Update the message with the updated to-do list
+//     await interaction.update({ embeds: [generateTodoEmbed(userId)], components: [generateTodoDropdown(userId)] });
+// });
+
+// function sendTodoList(message, userId) {
+//     // Assign the userId as the creatorId of the to-do list
+//     if (!todoLists[userId]) {
+//         todoLists[userId] = [];
+//     }
+//     todoLists[userId].creatorId = userId;
+
+//     return message.channel.send({
+//         embeds: [generateTodoEmbed(userId)],
+//         components: [generateTodoDropdown(userId)]
+//     });
+// }
+
+// function generateTodoEmbed(userId) {
+//     const list = todoLists[userId]
+//         .map((task, index) => `${task.checked ? '✅' : '❌'} **${index + 1}.** ${task.checked ? `~~${task.text}~~` : task.text}`)
+//         .join('\n');
+
+//     return new EmbedBuilder()
+//         .setColor(0xbccda6)
+//         .setTitle('Your Todo List')
+//         .setDescription(list || 'No tasks available.')
+//         .setFooter({ text: 'Use the dropdown below to check off items!' });
+// }
+
+// function generateTodoDropdown(userId) {
+//     const menu = new StringSelectMenuBuilder()
+//         .setCustomId('todo_select')
+//         .setPlaceholder('Select a task to mark as done')
+//         .addOptions(todoLists[userId].map((task, index) => ({
+//             label: task.text,
+//             value: index.toString(),
+//             description: task.checked ? 'Checked' : 'Unchecked'
+//         })));
+
+//     return new ActionRowBuilder().addComponents(menu);
+// }
 
 
 
