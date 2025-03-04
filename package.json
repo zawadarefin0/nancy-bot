@@ -16,5 +16,8 @@
     "url": "https://github.com/zawadarefin/nancy-bot/issues"
   },
   "homepage": "https://github.com/zawadarefin/nancy-bot#readme",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
 }
