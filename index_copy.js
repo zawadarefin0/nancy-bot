@@ -69,7 +69,7 @@ client.on('messageCreate', (message) => {
             .setTitle('TEST EMBEFICIATION')
             .setDescription('I love nancy ngoc linh ho')
             .setTimestamp()
-            .setFooter({ text: 'nancy <3', iconURL: message.author.displayAvatarURL() });
+            .setFooter({ text: 'nancy <3', iconURL: client.user.displayAvatarURL() });
 
         message.channel.send({ embeds: [embed] });
     }
@@ -102,58 +102,19 @@ client.on('messageCreate', (message) => {
             .setDescription('Here are all the commands you can use:')
             .addFields(
                 { name: '!help', value: 'List all the commands available for you.' },
-            )
-            .setTimestamp()
-            .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
-
-        message.channel.send({ embeds: [helpEmbed] });
-
-        const helpEmbed2 = new EmbedBuilder()
-            .setColor(0x0081d6)
-            .setTitle('Call Commands')
-            .setDescription('Commands regarding calls:')
-            .addFields(
                 { name: '!timer [time in hours]', value: 'Set a sleep timer for the bot to disconnect all users from the voice channel after the specified time in hours.' },
                 { name: '!duration', value: 'Check the duration of the current call you are in.' },
-                { name: '!topcalls', value: 'Display the top 10 longest calls in the server.' },
+                { name: '!zawad', value: 'Send a message: "I love Nancy!"' },
+                { name: '!nancy', value: 'Send a message: "I love Zawad!"' },
+                { name: '!createtodo', value: 'Create your empty todo-list' },
+                { name: '!viewtodo', value: 'View your current Todo list.' },
+                { name: '!addtodo [item]', value: 'Add a singular item to your todolist'},
+                { name: '!deletetodo', value: "Delete your todo-list"}
             )
             .setTimestamp()
-            .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
+            .setFooter({ text: 'Bot Commands', iconURL: message.author.displayAvatarURL() });
 
-        message.channel.send({ embeds: [helpEmbed2] });
-
-
-        const helpEmbed3 = new EmbedBuilder()
-            .setColor(0x0062a3)
-            .setTitle('Todolist')
-            .setDescription('Commands to operate the todolist:')
-            .addFields(
-                { name: '!todo [item] [item2]', value: 'Add items to your todolist' },
-                { name: '!todo view', value: 'View your current Todo list.' }
-            )
-            .setTimestamp()
-            .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
-
-        message.channel.send({ embeds: [helpEmbed3] });
-
-        const helpEmbed4 = new EmbedBuilder()
-            .setColor(0x00568f)
-            .setTitle('Misc commmands')
-            .setDescription('All the misc cutie patootie commands ❤:')
-            .addFields(
-                { name: '!ntimetable', value: "Display Nancy's timetable" },
-                { name: '!ztimetable', value: "Display Zawad's timetable" },
-                { name: '!zawad', value: 'A very honest message quoting the greatest Zawad himself' },
-                { name: '!nancy', value: 'A cute message quoting the princess Nancy herself' },
-            )
-            .setTimestamp()
-            .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
-
-        message.channel.send({ embeds: [helpEmbed4] });
-
-    
-
-    
+        message.channel.send({ embeds: [helpEmbed] });
     }
 });
 
@@ -175,7 +136,7 @@ client.on('messageCreate', (message) => {
                 .setTitle('Error')
                 .setDescription('You need to be in a voice channel to use this command!')
                 .setTimestamp()
-                .setFooter({ text: 'Voice Channel Activity', iconURL: message.author.displayAvatarURL() });
+                .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
             return message.channel.send({ embeds: [errorEmbed] });
         }
 
@@ -194,7 +155,7 @@ client.on('messageCreate', (message) => {
                     .setTitle('Timer Stopped')
                     .setDescription(`The timer for **${voiceChannel.name}** has been stopped.`)
                     .setTimestamp()
-                    .setFooter({ text: 'Voice Channel Activity', iconURL: message.author.displayAvatarURL() });
+                    .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
                 return message.channel.send({ embeds: [stopEmbed] });
             } else {
                 const noTimerEmbed = new EmbedBuilder()
@@ -202,7 +163,7 @@ client.on('messageCreate', (message) => {
                     .setTitle('No Active Timer')
                     .setDescription(`There is no active timer for **${voiceChannel.name}**.`)
                     .setTimestamp()
-                    .setFooter({ text: 'Voice Channel Activity', iconURL: message.author.displayAvatarURL() });
+                    .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
                 return message.channel.send({ embeds: [noTimerEmbed] });
             }
         }
@@ -214,7 +175,7 @@ client.on('messageCreate', (message) => {
                 .setTitle('Invalid Time')
                 .setDescription('Please provide a valid number of hours.')
                 .setTimestamp()
-                .setFooter({ text: 'Voice Channel Activity', iconURL: message.author.displayAvatarURL() });
+                .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
             return message.channel.send({ embeds: [invalidTimeEmbed] });
         }
 
@@ -238,7 +199,7 @@ client.on('messageCreate', (message) => {
                         { name: 'Duration', value: `${hours} hour(s)`, inline: true }
                     )
                     .setTimestamp()
-                    .setFooter({ text: 'Voice Channel Activity', iconURL: message.author.displayAvatarURL() });
+                    .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
 
                 // Send the embed to a text channel
                 const textChannel = message.guild.channels.cache.get('1345360596828426280');
@@ -264,7 +225,7 @@ client.on('messageCreate', (message) => {
                         { name: 'Remaining Time', value: `${remainingHours}h ${remainingMinutes}m ${remainingSeconds}s`, inline: true }
                     )
                     .setTimestamp()
-                    .setFooter({ text: 'Voice Channel Activity', iconURL: message.author.displayAvatarURL() });
+                    .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
 
                 // If we have the message reference, edit the existing message
                 const textChannel = message.guild.channels.cache.get('1345360596828426280');
@@ -286,7 +247,7 @@ client.on('messageCreate', (message) => {
             .setTitle('Timer Started')
             .setDescription(`A **${hours} hour(s)** timer has been set for **${voiceChannel.name}**. After this time, all users will be disconnected.`)
             .setTimestamp()
-            .setFooter({ text: 'Voice Channel Activity', iconURL: message.author.displayAvatarURL() });
+            .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
 
         const textChannel = message.guild.channels.cache.get('1345360596828426280');
         if (textChannel) {
@@ -354,14 +315,6 @@ client.on('voiceStateUpdate', (oldState, newState) => {
                 textChannel.send({ embeds: [embed] });
             }
 
-            // Save the call duration to the database
-            callDurations.push({
-                channelName: oldChannel.name,
-                duration: callDuration,
-                timestamp: Date.now()
-            });
-            saveCallDurations();
-
             delete activeCalls[channelId];
             delete callStartTimes[channelId];
         }
@@ -377,7 +330,7 @@ client.on('messageCreate', (message) => {
                 .setTitle('Error')
                 .setDescription('You need to be in a voice channel to check the call duration!')
                 .setTimestamp()
-                .setFooter({ text: 'Voice Channel Activity', iconURL: message.author.displayAvatarURL() });
+                .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
 
             return message.channel.send({ embeds: [errorEmbed] });
         }
@@ -391,7 +344,7 @@ client.on('messageCreate', (message) => {
                 .setTitle('No Active Call')
                 .setDescription(`There is no active call in **${voiceChannel.name}**.`)
                 .setTimestamp()
-                .setFooter({ text: 'Voice Channel Activity', iconURL: message.author.displayAvatarURL() });
+                .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
 
             return message.channel.send({ embeds: [noCallEmbed] });
         }
@@ -418,7 +371,7 @@ client.on('messageCreate', (message) => {
                 { name: 'Duration', value: durationString, inline: true }
             )
             .setTimestamp()
-            .setFooter({ text: 'Voice Channel Activity', iconURL: message.author.displayAvatarURL() });
+            .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
 
         message.channel.send({ embeds: [durationEmbed] });
     }
@@ -448,28 +401,6 @@ client.once("ready", () => {
     console.log("Bot is online!");
     loadTodoLists(); // Load saved to-do lists on bot startup
 });
-
-const CALLS_DB_FILE = path.join(__dirname, "calls.json");
-
-let callDurations = []; // Store all call durations
-
-// Load call durations from file
-function loadCallDurations() {
-    try {
-        const data = fs.readFileSync(CALLS_DB_FILE, "utf-8");
-        callDurations = JSON.parse(data);
-    } catch (err) {
-        callDurations = [];
-    }
-}
-
-// Save call durations to file
-function saveCallDurations() {
-    fs.writeFileSync(CALLS_DB_FILE, JSON.stringify(callDurations, null, 2));
-}
-
-// Load call durations on bot startup
-loadCallDurations();
 
 // Command handler
 client.on("messageCreate", async (message) => {
@@ -584,32 +515,6 @@ function generateTodoDropdown(userId) {
 
     return new ActionRowBuilder().addComponents(menu);
 }
-
-client.on('messageCreate', (message) => {
-    if (message.content === '!topcalls') {
-        // Sort call durations by duration in descending order and get the top 10
-        const topCalls = callDurations.sort((a, b) => b.duration - a.duration).slice(0, 10);
-
-        // Create an embed to display the top 10 longest calls
-        const embed = new EmbedBuilder()
-            .setColor(0x0099ff)
-            .setTitle('Top 10 Longest Calls')
-            .setDescription('Here are the top 10 longest calls:')
-            .setTimestamp()
-            .setFooter({ text: 'Call Leaderboard', iconURL: message.author.displayAvatarURL() });
-
-        topCalls.forEach((call, index) => {
-            const durationHours = Math.floor(call.duration / 3600000);
-            const durationMinutes = Math.floor((call.duration % 3600000) / 60000);
-            const durationSeconds = Math.floor((call.duration % 60000) / 1000);
-            const durationString = `${durationHours}h ${durationMinutes}m ${durationSeconds}s`;
-
-            embed.addFields({ name: `#${index + 1}`, value: `Duration: ${durationString}`, inline: false });
-        });
-
-        message.channel.send({ embeds: [embed] });
-    }
-});
 
 client.login(process.env.TOKEN);
 
