@@ -5,29 +5,29 @@ here is the command list for the curious:
 !help - shows all available commands
 
 #### call commands
-**!timer** \[time in hours]
+**!timer** \[time in hours] \n
 set a sleep timer to disconnect all users from the voice channel they activate the command in after the specified time
 
-**!duration**
+**!duration** \n
 check the duration of the current call you are in
 
-**!topcalls**
+**!topcalls** \n
 display the top 10 calls with the longest duration
 
 #### Todolist
-**!todo** \[item1] \[item2]
+**!todo** \[item1] \[item2] \n
 add items to todolist
 
-**!todo view**
+**!todo view** \n
 view your todolist
 
 #### Misc 
-**!ntimetable**
+**!ntimetable** \n
 shows the goat's timetable
 
-**!ztimetable**
+**!ztimetable** \n
 shows the other goat's timetable
 
-**!zawad** 
-
-**!nancy**
+**!zawad** \n
+ 
+**!nancy** \n
