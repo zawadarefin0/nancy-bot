@@ -1,8 +1,18 @@
 [
   {
     "channelName": "esex",
+    "duration": 12654788,
+    "timestamp": 1741264585735
+  },
+  {
+    "channelName": "esex",
     "duration": 33101,
     "timestamp": 1741181960633
+  },
+  {
+    "channelName": "esex",
+    "duration": 13252,
+    "timestamp": 1741183290937
   },
   {
     "channelName": "esex",
@@ -11,7 +21,7 @@
   },
   {
     "channelName": "esex",
-    "duration": 13252,
-    "timestamp": 1741183290937
+    "duration": 23996931,
+    "timestamp": 1741361842004
   }
 ]

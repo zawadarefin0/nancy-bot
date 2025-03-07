@@ -602,7 +602,7 @@ client.on('messageCreate', (message) => {
             const durationHours = Math.floor(call.duration / 3600000);
             const durationMinutes = Math.floor((call.duration % 3600000) / 60000);
             const durationSeconds = Math.floor((call.duration % 60000) / 1000);
-            const durationString = `${durationHours}h ${durationMinutes}m ${durationSeconds}s`;
+            const durationString = `**${durationHours}h ${durationMinutes}m ${durationSeconds}s**`;
 
             embed.addFields({ name: `#${index + 1}`, value: `Duration: ${durationString}`, inline: false });
         });
