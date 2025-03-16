@@ -16,7 +16,8 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildVoiceStates
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMembers
     ]
 });
 
@@ -39,7 +40,7 @@ client.on('messageCreate', (message) => {
 
 client.on('messageCreate', (message) => {
     if (message.content === '!ntimetable') {
-        message.channel.send('https://cdn.discordapp.com/attachments/1345359086593507341/1346016809958244394/IMG_4054.png?ex=67c6a757&is=67c555d7&hm=60072e21b1cb675d2bb420b855e420a81da4437f818dbbedbdf18d3a8ef87140&format=webp&quality=lossless&width=1010&height=757');
+        message.channel.send('https://media.discordapp.net/attachments/1345359086593507341/1349618840560074763/image.png?ex=67d3c1fe&is=67d2707e&hm=b7415e3e79c89c14f2a7e64397a6c6f241205c66cf48e92ac0f3ce1db3b3a4f8&=&format=webp&quality=lossless');
     }
 });
 
@@ -75,6 +76,72 @@ client.on('messageCreate', (message) => {
     }
 });
 
+// Function to create and send a welcome embed
+function sendWelcomeEmbed(member) {
+    const welcomeEmbed = new EmbedBuilder()
+        .setColor(0xffd3d3)
+        .setAuthor({ name: '⌢⌢⌢⌢⌢⌢꒰ ♡ ꒱⌢⌢⌢⌢⌢⌢', iconURL: member.user.displayAvatarURL() })
+        .setDescription(`### **wlc 2 our home ♡** *!*`)
+        .addFields(
+            { name: '', value: '`🍰`・https://discord.com/channels/1345359085696188431/1345359086593507341 for **chatsies** ☆\n`🎀`・https://discord.com/channels/1345359085696188431/1345362097953050684 for __our__ gallery **୨୧**\n`🍵`・https://discord.com/channels/1345359085696188431/1345359682969145384 for da  **fweaky** :3' }
+        )
+        .setThumbnail(`https://cdn.discordapp.com/attachments/1345360596828426280/1348237291008823336/cut.gif?ex=67cebb53&is=67cd69d3&hm=df0f4965ec1359e80ad4546a3dd07f5ef480f89180fc06a45cd849891abd958f&`)
+        .setTimestamp()
+        .setImage(`https://cdn.discordapp.com/attachments/1141987769393094717/1336841900468211742/IMG_5820.gif?ex=67ce250a&is=67ccd38a&hm=8c38e8954d8c3cf6b921da625a8ab0149e81f6a05135a07129769b3d52ec832b&`)
+        .setFooter({ text: '⟡ enjoy your eternal stay . . ' });
+
+    const systemChannel = member.guild.systemChannel;
+    if (systemChannel) {
+        systemChannel.send({ content: `♡⸝⸝ <@${member.user.id}> . . .`, embeds: [welcomeEmbed] }).catch(error => {
+            console.error('Could not send welcome message:', error);
+        });
+    } else {
+        console.error('System channel not found.');
+    }
+}
+
+// Welcome new members
+client.on('guildMemberAdd', (member) => {
+    const systemChannel = member.guild.systemChannel;
+    if (systemChannel) {
+        sendWelcomeEmbed(member, systemChannel);
+    } else {
+        console.error('System channel not found.');
+    }
+});
+
+// Example command to manually send a welcome message in the current channel
+client.on('messageCreate', (message) => {
+    if (message.content === '!welcome') {
+        sendWelcomeEmbed(message.member, message.channel);
+    }
+});
+
+// Purge chat
+client.on('messageCreate', async (message) => {
+    if (message.content.startsWith('!purge')) {
+        if (!message.member.permissions.has('MANAGE_MESSAGES')) {
+            return message.reply("You don't have permission to use this command.");
+        }
+
+        const args = message.content.split(' ');
+        const amount = parseInt(args[1]);
+
+        if (isNaN(amount) || amount <= 0 || amount > 1000) {
+            return message.reply('Please provide a number between 1 and 1000.');
+        }
+
+        try {
+            await message.channel.bulkDelete(amount, true);
+            message.channel.send(`Successfully deleted ${amount} messages.`).then(msg => {
+                setTimeout(() => msg.delete(), 5000);
+            });
+        } catch (error) {
+            console.error('Error deleting messages:', error);
+            message.reply('There was an error trying to delete messages in this channel!');
+        }
+    }
+});
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -97,56 +164,60 @@ rl.on('line', (input) => {
 client.on('messageCreate', (message) => {
     if (message.content === '!help') {
         const helpEmbed = new EmbedBuilder()
-            .setColor(0x0099ff)
-            .setTitle('Available Commands')
+            .setColor(0xffc2c2)
+            .setTitle('📜 Available Commands')
             .setDescription('Here are all the commands you can use:')
             .addFields(
-                { name: '!help', value: 'List all the commands available for you.' },
+                { name: '・!help', value: '୨୧ List all the commands available for you.' },
             )
             .setTimestamp()
+            .setImage(`https://imgur.com/q2YQXz6`)
             .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
 
         message.channel.send({ embeds: [helpEmbed] });
 
         const helpEmbed2 = new EmbedBuilder()
-            .setColor(0x0081d6)
-            .setTitle('Call Commands')
+            .setColor(0xfff3c7)
+            .setTitle('📞 Call Commands')
             .setDescription('Commands regarding calls:')
             .addFields(
-                { name: '!timer [time in hours]', value: 'Set a sleep timer for the bot to disconnect all users from the voice channel after the specified time in hours.' },
-                { name: '!duration', value: 'Check the duration of the current call you are in.' },
-                { name: '!topcalls', value: 'Display the top 10 longest calls in the server.' },
+                { name: '・ !timer [time in hours]', value: '୨୧ Set a sleep timer for the bot to disconnect all users from the voice channel after the specified time in hours.' },
+                { name: '・ !duration', value: '୨୧ Check the duration of the current call you are in.' },
+                { name: '・ !topcalls', value: '୨୧ Display the top 10 longest calls in the server.' },
             )
             .setTimestamp()
+            .setImage(`https://imgur.com/q2YQXz6`)
             .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
 
         message.channel.send({ embeds: [helpEmbed2] });
 
 
         const helpEmbed3 = new EmbedBuilder()
-            .setColor(0x0062a3)
-            .setTitle('Todolist')
+            .setColor(0xc7e5ff)
+            .setTitle('📝 Todolist')
             .setDescription('Commands to operate the todolist:')
             .addFields(
-                { name: '!todo [item] [item2]', value: 'Add items to your todolist' },
-                { name: '!todo view', value: 'View your current Todo list.' }
+                { name: '・ !todo [item] [item2]', value: '୨୧ Add items to your todolist' },
+                { name: '・ !todo view', value: '୨୧ View your current Todo list.' }
             )
             .setTimestamp()
+            .setImage(`https://imgur.com/q2YQXz6`)
             .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
 
         message.channel.send({ embeds: [helpEmbed3] });
 
         const helpEmbed4 = new EmbedBuilder()
-            .setColor(0x00568f)
-            .setTitle('Misc commmands')
+            .setColor(0xe3c7ff)
+            .setTitle('🎀 Misc commmands')
             .setDescription('All the misc cutie patootie commands ❤:')
             .addFields(
-                { name: '!ntimetable', value: "Display Nancy's timetable" },
-                { name: '!ztimetable', value: "Display Zawad's timetable" },
-                { name: '!zawad', value: 'A very honest message quoting the greatest Zawad himself' },
-                { name: '!nancy', value: 'A cute message quoting the princess Nancy herself' },
+                { name: '・ !ntimetable', value: "୨୧ Display Nancy's timetable" },
+                { name: '・ !ztimetable', value: "୨୧ Display Zawad's timetable" },
+                { name: '・ !zawad', value: '୨୧ A very honest message quoting the greatest Zawad himself' },
+                { name: '・ !nancy', value: '୨୧ A cute message quoting the princess Nancy herself' },
             )
             .setTimestamp()
+            .setImage(`https://imgur.com/q2YQXz6`)
             .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
 
         message.channel.send({ embeds: [helpEmbed4] });
@@ -362,6 +433,11 @@ client.on('voiceStateUpdate', (oldState, newState) => {
             });
             saveCallDurations();
 
+            // Update stats
+            stats.totalCallDuration += callDuration;
+            stats.totalCalls += 1;
+            saveStats();
+
             delete activeCalls[channelId];
             delete callStartTimes[channelId];
         }
@@ -470,6 +546,34 @@ function saveCallDurations() {
 
 // Load call durations on bot startup
 loadCallDurations();
+
+const STATS_FILE = path.join(__dirname, "stats.json");
+
+let stats = {
+    totalCallDuration: 0,
+    totalCalls: 0
+};
+
+// Load stats from file
+function loadStats() {
+    try {
+        const data = fs.readFileSync(STATS_FILE, "utf-8");
+        stats = JSON.parse(data);
+    } catch (err) {
+        stats = {
+            totalCallDuration: 0,
+            totalCalls: 0
+        };
+    }
+}
+
+// Save stats to file
+function saveStats() {
+    fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+}
+
+// Load stats on bot startup
+loadStats();
 
 // Command handler
 client.on("messageCreate", async (message) => {
@@ -592,7 +696,7 @@ client.on('messageCreate', (message) => {
 
         // Create an embed to display the top 10 longest calls
         const embed = new EmbedBuilder()
-            .setColor(0x0099ff)
+            .setColor(0xdbeaff)
             .setTitle('Top 10 Longest Calls')
             .setDescription('Here are the top 10 longest calls:')
             .setTimestamp()
@@ -608,6 +712,27 @@ client.on('messageCreate', (message) => {
         });
 
         message.channel.send({ embeds: [embed] });
+    }
+});
+
+client.on('messageCreate', (message) => {
+    if (message.content === '!stats') {
+        const totalDurationHours = Math.floor(stats.totalCallDuration / 3600000);
+        const totalDurationMinutes = Math.floor((stats.totalCallDuration % 3600000) / 60000);
+        const totalDurationSeconds = Math.floor((stats.totalCallDuration % 60000) / 1000);
+
+        const statsEmbed = new EmbedBuilder()
+            .setColor(0x0099ff)
+            .setTitle('Call Stats')
+            .setDescription('Here are the total call stats:')
+            .addFields(
+                { name: 'Total Call Duration', value: `${totalDurationHours}h ${totalDurationMinutes}m ${totalDurationSeconds}s`, inline: true },
+                { name: 'Total Number of Calls', value: `${stats.totalCalls}`, inline: true }
+            )
+            .setTimestamp()
+            .setFooter({ text: 'Call Stats', iconURL: message.author.displayAvatarURL() });
+
+        message.channel.send({ embeds: [statsEmbed] });
     }
 });
 

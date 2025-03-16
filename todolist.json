@@ -3,24 +3,8 @@
     "creatorId": "359616511561826305",
     "tasks": [
       {
-        "text": "4F",
+        "text": "nancy",
         "checked": true
-      },
-      {
-        "text": "4G",
-        "checked": true
-      },
-      {
-        "text": "4I",
-        "checked": false
-      },
-      {
-        "text": "4J",
-        "checked": false
-      },
-      {
-        "text": "marketing processes worksheet",
-        "checked": false
       }
     ]
   },
@@ -37,15 +21,27 @@
     "creatorId": "498419883017764885",
     "tasks": [
       {
-        "text": "art canvas sketch + paint",
+        "text": "art worksheet 1 (identity)",
         "checked": true
       },
       {
-        "text": "drink 1 bottle min",
+        "text": "art worksheet 2 (Julie rrap)",
         "checked": true
       },
       {
-        "text": "cafs booklet catch up",
+        "text": "bst flash cards",
+        "checked": true
+      },
+      {
+        "text": "art essay body 1",
+        "checked": false
+      },
+      {
+        "text": "drink min 1 bottle",
+        "checked": true
+      },
+      {
+        "text": "pluck eyebrows",
         "checked": false
       }
     ]
