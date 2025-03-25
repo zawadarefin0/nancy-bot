@@ -66,7 +66,7 @@ client.on('messageCreate', (message) => {
 client.on('messageCreate', (message) => {
     if (message.content === '!embed') {
         const embed = new EmbedBuilder()
-            .setColor(0x0099ff) // Blue color
+            .setColor(0x99e4ff) // Blue color
             .setTitle('TEST EMBEFICIATION')
             .setDescription('I love nancy ngoc linh ho')
             .setTimestamp()
@@ -242,7 +242,7 @@ client.on('messageCreate', (message) => {
         // Check if the user is in a voice channel
         if (!message.member.voice.channel) {
             const errorEmbed = new EmbedBuilder()
-                .setColor(0xff0000)
+                .setColor(0xc74646)
                 .setTitle('Error')
                 .setDescription('You need to be in a voice channel to use this command!')
                 .setTimestamp()
@@ -261,7 +261,7 @@ client.on('messageCreate', (message) => {
                 delete activeTimerMessages[voiceChannel.id];  // Remove message reference
 
                 const stopEmbed = new EmbedBuilder()
-                    .setColor(0xff0000)
+                    .setColor(0xc74646)
                     .setTitle('Timer Stopped')
                     .setDescription(`The timer for **${voiceChannel.name}** has been stopped.`)
                     .setTimestamp()
@@ -269,7 +269,7 @@ client.on('messageCreate', (message) => {
                 return message.channel.send({ embeds: [stopEmbed] });
             } else {
                 const noTimerEmbed = new EmbedBuilder()
-                    .setColor(0xff0000)
+                    .setColor(0xc74646)
                     .setTitle('No Active Timer')
                     .setDescription(`There is no active timer for **${voiceChannel.name}**.`)
                     .setTimestamp()
@@ -281,7 +281,7 @@ client.on('messageCreate', (message) => {
         // Validate if the time provided is a valid number of hours
         if (isNaN(hours) || hours <= 0) {
             const invalidTimeEmbed = new EmbedBuilder()
-                .setColor(0xff0000)
+                .setColor(0xc74646)
                 .setTitle('Invalid Time')
                 .setDescription('Please provide a valid number of hours.')
                 .setTimestamp()
@@ -302,7 +302,7 @@ client.on('messageCreate', (message) => {
                 });
 
                 const endEmbed = new EmbedBuilder()
-                    .setColor(0xff0000)  // Red color for disconnect event
+                    .setColor(0xc74646)  // Red color for disconnect event
                     .setTitle('Voice Channel Timeout')
                     .setDescription(`The timer for **${voiceChannel.name}** has ended, and all users have been disconnected.`)
                     .addFields(
@@ -328,7 +328,7 @@ client.on('messageCreate', (message) => {
                 const remainingSeconds = Math.floor((activeTimers[voiceChannel.id].remainingTime % (1000 * 60)) / 1000);
 
                 const updateEmbed = new EmbedBuilder()
-                    .setColor(0x0099ff)  // Blue color for timer updates
+                    .setColor(0x99e4ff)  // Blue color for timer updates
                     .setTitle('Timer Update')
                     .setDescription(`Time remaining for **${voiceChannel.name}**:`)
                     .addFields(
@@ -353,7 +353,7 @@ client.on('messageCreate', (message) => {
 
         // Send the initial embed to the text channel and store the message reference
         const startEmbed = new EmbedBuilder()
-            .setColor(0x0099ff)
+            .setColor(0x99e4ff)
             .setTitle('Timer Started')
             .setDescription(`A **${hours} hour(s)** timer has been set for **${voiceChannel.name}**. After this time, all users will be disconnected.`)
             .setTimestamp()
@@ -384,8 +384,8 @@ client.on('voiceStateUpdate', (oldState, newState) => {
         const channelId = newChannel.id;
         if (!activeCalls[channelId]) {
             const embed = new EmbedBuilder()
-                .setColor(0x5de602)
-                .setTitle('Call Started')
+                .setColor(0x6ed493)
+                .setTitle('▶ Call Started')
                 .setDescription(`A call has started in **${newChannel.name}** 🎤`)
                 .setTimestamp()
                 .setFooter({ text: 'Voice Channel Activity', iconURL: client.user.displayAvatarURL() });
@@ -411,8 +411,8 @@ client.on('voiceStateUpdate', (oldState, newState) => {
             const durationSeconds = Math.floor((callDuration % 60000) / 1000);
 
             const embed = new EmbedBuilder()
-                .setColor(0xff0000)
-                .setTitle('Call Ended')
+                .setColor(0xc74646)
+                .setTitle('⏹ Call Ended')
                 .setDescription(`The call in **${oldChannel.name}** has ended! 🎤`)
                 .addFields(
                     { name: 'Call Duration', value: `${durationHours}h ${durationMinutes}m ${durationSeconds}s`, inline: true }
@@ -449,7 +449,7 @@ client.on('messageCreate', (message) => {
     if (message.content === '!duration') {
         if (!message.member.voice.channel) {
             const errorEmbed = new EmbedBuilder()
-                .setColor(0xff0000)
+                .setColor(0xc74646)
                 .setTitle('Error')
                 .setDescription('You need to be in a voice channel to check the call duration!')
                 .setTimestamp()
@@ -463,7 +463,7 @@ client.on('messageCreate', (message) => {
 
         if (!activeCalls[channelId]) {
             const noCallEmbed = new EmbedBuilder()
-                .setColor(0xff0000)
+                .setColor(0xc74646)
                 .setTitle('No Active Call')
                 .setDescription(`There is no active call in **${voiceChannel.name}**.`)
                 .setTimestamp()
@@ -487,8 +487,8 @@ client.on('messageCreate', (message) => {
         durationString += `${seconds}s`;
 
         const durationEmbed = new EmbedBuilder()
-            .setColor(0x0099ff)
-            .setTitle('Call Duration')
+            .setColor(0x99e4ff)
+            .setTitle('⏲ Call Duration')
             .setDescription(`The call in **${voiceChannel.name}** has been active for:`)
             .addFields(
                 { name: 'Duration', value: durationString, inline: true }
@@ -551,7 +551,8 @@ const STATS_FILE = path.join(__dirname, "stats.json");
 
 let stats = {
     totalCallDuration: 0,
-    totalCalls: 0
+    totalCalls: 0,
+    averageDuration: 0
 };
 
 // Load stats from file
@@ -562,7 +563,8 @@ function loadStats() {
     } catch (err) {
         stats = {
             totalCallDuration: 0,
-            totalCalls: 0
+            totalCalls: 0,
+            averageDuration: 0
         };
     }
 }
@@ -587,7 +589,7 @@ client.on("messageCreate", async (message) => {
         // Check if the command is to view the todo list
         if (message.content === "!todo view") {
             if (!todoLists[userId] || todoLists[userId].tasks.length === 0) {
-                return message.channel.send({ embeds: [new EmbedBuilder().setColor(0xff0000).setTitle("Your Todo List is Empty!")] });
+                return message.channel.send({ embeds: [new EmbedBuilder().setColor(0xc74646).setTitle("Your Todo List is Empty!")] });
             }
             return sendTodoList(message, userId);
         }
@@ -717,17 +719,25 @@ client.on('messageCreate', (message) => {
 
 client.on('messageCreate', (message) => {
     if (message.content === '!stats') {
+        loadStats();
         const totalDurationHours = Math.floor(stats.totalCallDuration / 3600000);
         const totalDurationMinutes = Math.floor((stats.totalCallDuration % 3600000) / 60000);
         const totalDurationSeconds = Math.floor((stats.totalCallDuration % 60000) / 1000);
 
+        const AverageHours = Math.floor(calculateAverageCallDuration() / 3600000);
+        const AverageMinutes = Math.floor((calculateAverageCallDuration() % 3600000) / 60000);
+        const AverageSeconds = Math.floor((calculateAverageCallDuration() % 60000) / 1000);
+
         const statsEmbed = new EmbedBuilder()
-            .setColor(0x0099ff)
-            .setTitle('Call Stats')
-            .setDescription('Here are the total call stats:')
+            .setColor(0xffeea9)
+            .setTitle('📋 Call Stats')
+            .setDescription('♡⸝⸝ Here are the total call stats:')
             .addFields(
                 { name: 'Total Call Duration', value: `${totalDurationHours}h ${totalDurationMinutes}m ${totalDurationSeconds}s`, inline: true },
-                { name: 'Total Number of Calls', value: `${stats.totalCalls}`, inline: true }
+                { name: 'Total Number of Calls', value: `${stats.totalCalls}`, inline: true },
+            )
+            .addFields(
+                { name: 'Average Call Duration', value: `${AverageHours}h ${AverageMinutes}m ${AverageSeconds}s`, inline: false }
             )
             .setTimestamp()
             .setFooter({ text: 'Call Stats', iconURL: message.author.displayAvatarURL() });
@@ -735,6 +745,11 @@ client.on('messageCreate', (message) => {
         message.channel.send({ embeds: [statsEmbed] });
     }
 });
+
+function calculateAverageCallDuration() {
+    if (stats.totalCalls === 0) return 0;
+    return stats.totalCallDuration / stats.totalCalls;
+}
 
 client.login(process.env.TOKEN);
 
