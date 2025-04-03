@@ -24,19 +24,30 @@ const client = new Client({
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
 
-
     client.user.setPresence({
         activities: [{ name: "with Zawad", type: ActivityType.LISTENING }],
         status: 'online' // Other options: 'idle', 'dnd', 'invisible'
     });
+
+    // Check for ongoing calls in duration.json
+    for (const channelId in ongoingCalls) {
+        const callData = ongoingCalls[channelId];
+
+        // If the call has not ended, resume tracking it
+        if (!callData.isEnded) {
+            activeCalls[channelId] = true;
+            callStartTimes[channelId] = callData.startTime;
+
+            console.log(`Resumed tracking call in channel ${channelId} (started at ${new Date(callData.startTime).toLocaleString()})`);
+        }
+    }
 });
+
 client.on('messageCreate', (message) => {
     if (message.content === '!ping') {
         message.channel.send('Pong!');
     }
 });
-
-
 
 client.on('messageCreate', (message) => {
     if (message.content === '!ntimetable') {
@@ -61,7 +72,6 @@ client.on('messageCreate', (message) => {
         message.channel.send('I love Zawad!')
     }
 })
-
 
 client.on('messageCreate', (message) => {
     if (message.content === '!embed') {
@@ -158,8 +168,6 @@ rl.on('line', (input) => {
     }
 });
 
-
-
 // !help command
 client.on('messageCreate', (message) => {
     if (message.content === '!help') {
@@ -191,7 +199,6 @@ client.on('messageCreate', (message) => {
 
         message.channel.send({ embeds: [helpEmbed2] });
 
-
         const helpEmbed3 = new EmbedBuilder()
             .setColor(0xc7e5ff)
             .setTitle('📝 Todolist')
@@ -221,14 +228,8 @@ client.on('messageCreate', (message) => {
             .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
 
         message.channel.send({ embeds: [helpEmbed4] });
-
-    
-
-    
     }
 });
-
-
 
 let activeTimers = {};  // To track active timers for each voice channel
 let activeTimerMessages = {}; // To track the message reference for the countdown timer
@@ -368,8 +369,6 @@ client.on('messageCreate', (message) => {
     }
 });
 
-
-
 // Call Duration
 
 let callStartTimes = {};  // To track call start times by channel ID
@@ -382,6 +381,12 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     // Handle when a user joins a voice channel
     if (!oldChannel && newChannel) {
         const channelId = newChannel.id;
+
+        // If the call is already ongoing, do not reset the timer
+        if (ongoingCalls[channelId] && !ongoingCalls[channelId].isEnded) {
+            return;
+        }
+
         if (!activeCalls[channelId]) {
             const embed = new EmbedBuilder()
                 .setColor(0x6ed493)
@@ -396,7 +401,15 @@ client.on('voiceStateUpdate', (oldState, newState) => {
             }
 
             activeCalls[channelId] = true;
-            callStartTimes[channelId] = Date.now();  // Store start time
+            callStartTimes[channelId] = Date.now(); // Store start time
+
+            // Save start time to duration.json
+            ongoingCalls[channelId] = {
+                startTime: Date.now(),
+                endTime: null,
+                isEnded: false,
+            };
+            saveOngoingCalls();
         }
     }
 
@@ -404,8 +417,14 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     if (oldChannel && !newChannel) {
         const channelId = oldChannel.id;
 
-        if (oldChannel.members.size === 0 && activeCalls[channelId]) {
-            const callDuration = Date.now() - callStartTimes[channelId];
+        // If the channel still has members, do not stop the timer
+        if (oldChannel.members.size > 0) {
+            return;
+        }
+
+        if (activeCalls[channelId]) {
+            const callData = ongoingCalls[channelId];
+            const callDuration = Date.now() - callData.startTime;
             const durationHours = Math.floor(callDuration / 3600000);
             const durationMinutes = Math.floor((callDuration % 3600000) / 60000);
             const durationSeconds = Math.floor((callDuration % 60000) / 1000);
@@ -425,18 +444,19 @@ client.on('voiceStateUpdate', (oldState, newState) => {
                 textChannel.send({ embeds: [embed] });
             }
 
-            // Save the call duration to the database
-            callDurations.push({
-                channelName: oldChannel.name,
-                duration: callDuration,
-                timestamp: Date.now()
-            });
-            saveCallDurations();
+            // Save the end time and mark the call as ended in duration.json
+            ongoingCalls[channelId].endTime = Date.now();
+            ongoingCalls[channelId].isEnded = true;
+            saveOngoingCalls();
 
             // Update stats
             stats.totalCallDuration += callDuration;
             stats.totalCalls += 1;
             saveStats();
+
+            // Remove the completed call from duration.json
+            delete ongoingCalls[channelId];
+            saveOngoingCalls();
 
             delete activeCalls[channelId];
             delete callStartTimes[channelId];
@@ -461,7 +481,7 @@ client.on('messageCreate', (message) => {
         const voiceChannel = message.member.voice.channel;
         const channelId = voiceChannel.id;
 
-        if (!activeCalls[channelId]) {
+        if (!ongoingCalls[channelId] || ongoingCalls[channelId].isEnded) {
             const noCallEmbed = new EmbedBuilder()
                 .setColor(0xc74646)
                 .setTitle('No Active Call')
@@ -472,7 +492,7 @@ client.on('messageCreate', (message) => {
             return message.channel.send({ embeds: [noCallEmbed] });
         }
 
-        const callStartTime = callStartTimes[channelId];
+        const callStartTime = ongoingCalls[channelId].startTime;
         const callDuration = Date.now() - callStartTime;
 
         // Convert time to hours, minutes, and seconds
@@ -576,6 +596,28 @@ function saveStats() {
 
 // Load stats on bot startup
 loadStats();
+
+const DURATION_FILE = path.join(__dirname, "duration.json");
+
+let ongoingCalls = {}; // Store ongoing call data
+
+// Load ongoing calls from file
+function loadOngoingCalls() {
+    try {
+        const data = fs.readFileSync(DURATION_FILE, "utf-8");
+        ongoingCalls = JSON.parse(data);
+    } catch (err) {
+        ongoingCalls = {};
+    }
+}
+
+// Save ongoing calls to file
+function saveOngoingCalls() {
+    fs.writeFileSync(DURATION_FILE, JSON.stringify(ongoingCalls, null, 2));
+}
+
+// Load ongoing calls on bot startup
+loadOngoingCalls();
 
 // Command handler
 client.on("messageCreate", async (message) => {
@@ -754,7 +796,6 @@ function calculateAverageCallDuration() {
 client.login(process.env.TOKEN);
 
 keepAlive();
-
 
 // app.get('/', (req, res) => {
 //     console.log(`Received request from: ${req.headers.host}`);
