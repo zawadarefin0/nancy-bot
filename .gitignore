@@ -1,0 +1,9 @@
+.env
+botstartup.vbs
+node_modules
+calls.json
+duration.json
+package.json
+package-lock.json
+stats.json
+todolist.json
