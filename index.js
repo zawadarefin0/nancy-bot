@@ -26,7 +26,10 @@ client.once('ready', () => {
     client.user.setPresence({
         activities: [{ name: "with Zawad", type: ActivityType.LISTENING }],
         status: 'online' // Other options: 'idle', 'dnd', 'invisible'
+
     });
+    
+    updateVoiceChannelNames();
 
     // Check for ongoing calls in duration.json
     for (const channelId in ongoingCalls) {
@@ -791,6 +794,67 @@ function calculateAverageCallDuration() {
     if (stats.totalCalls === 0) return 0;
     return stats.totalCallDuration / stats.totalCalls;
 }
+
+// Date Voice Channel update
+const TARGET_DATE = new Date('2025-01-17'); // Reference date
+
+// Function to calculate the difference in years, months, and days since the target date
+function calculateTimeSinceTarget() {
+    const today = new Date();
+    const targetDate = new Date(TARGET_DATE);
+
+    let years = today.getFullYear() - targetDate.getFullYear();
+    let months = today.getMonth() - targetDate.getMonth();
+    let days = today.getDate() - targetDate.getDate();
+
+    // Adjust for negative days
+    if (days < 0) {
+        months -= 1;
+        const previousMonth = new Date(today.getFullYear(), today.getMonth(), 0); // Last day of the previous month
+        days += previousMonth.getDate();
+    }
+
+    // Adjust for negative months
+    if (months < 0) {
+        years -= 1;
+        months += 12;
+    }
+
+    return { years, months, days };
+}
+
+// Function to update the voice channel names
+async function updateVoiceChannelNames() {
+    const guild = client.guilds.cache.get('1345359085696188431'); // Replace with your server's ID
+    const yearChannel = guild.channels.cache.get('1360437249891893248'); // Replace with your year channel's ID
+    const monthChannel = guild.channels.cache.get('1360440741167628380'); // Replace with your month channel's ID
+    const dayChannel = guild.channels.cache.get('1360440757000863945'); // Replace with your day channel's ID
+
+    if (!guild || !yearChannel || !monthChannel || !dayChannel) {
+        console.error('Guild or one of the channels not found.');
+        return;
+    }
+
+    const { years, months, days } = calculateTimeSinceTarget();
+
+    try {
+        await yearChannel.setName(`・${years} Years`);
+        console.log(`Updated year channel name to: Years: ${years}`);
+
+        await monthChannel.setName(`・${months} Months`);
+        console.log(`Updated month channel name to: Months: ${months}`);
+
+        await dayChannel.setName(`・${days} Days`);
+        console.log(`Updated day channel name to: Days: ${days}`);
+    } catch (error) {
+        console.error('Failed to update channel names:', error);
+    }
+}
+
+// Schedule the function to run daily
+setInterval(() => {
+    updateVoiceChannelNames();
+}, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
 
 client.login(process.env.TOKEN);
 
