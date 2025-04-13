@@ -851,10 +851,34 @@ async function updateVoiceChannelNames() {
     }
 }
 
-// Schedule the function to run daily
-setInterval(() => {
-    updateVoiceChannelNames();
-}, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+// Function to calculate the delay until the next 12:00 AM
+function calculateDelayUntilMidnight() {
+    const now = new Date();
+    const nextMidnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1, // Move to the next day
+        0, 0, 0, 0 // Set time to 12:00 AM
+    );
+    return nextMidnight - now; // Difference in milliseconds
+}
+
+// Schedule the function to update at 12:00 AM daily
+function scheduleDailyUpdate() {
+    const delay = calculateDelayUntilMidnight();
+
+    setTimeout(() => {
+        updateVoiceChannelNames(); // Run the update function at midnight
+        setInterval(updateVoiceChannelNames, 24 * 60 * 60 * 1000); // Schedule updates every 24 hours
+    }, delay);
+
+    console.log(`Scheduled the first update in ${Math.round(delay / 1000 / 60)} minutes.`);
+}
+
+// Run the scheduling function when the bot starts
+client.once('ready', () => {
+    scheduleDailyUpdate();
+});
 
 client.login(process.env.TOKEN);
 
