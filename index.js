@@ -10,12 +10,6 @@ require('dotenv').config();  // Load environment variables
 const readline = require('readline');
 
 
-client.on('messageCreate', async message => {
-    if (message.content === '!shutdown' && message.author.id === '1361031045004398718') {
-        await message.channel.send('Bot is shutting down...');
-        process.exit();
-    }
-});
 
 const client = new Client({
     intents: [
@@ -29,6 +23,12 @@ const client = new Client({
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
+    
+    loadTodoLists(); // Load saved to-do lists on bot startup
+
+    
+    scheduleDailyUpdate();
+
 
     client.user.setPresence({
         activities: [{ name: "with Zawad", type: ActivityType.LISTENING }],
@@ -549,11 +549,6 @@ function saveTodoLists() {
     fs.writeFileSync(TODO_FILE, JSON.stringify(todoLists, null, 2));
 }
 
-// When the bot is ready
-client.once("ready", () => {
-    console.log("Bot is online!");
-    loadTodoLists(); // Load saved to-do lists on bot startup
-});
 
 const CALLS_DB_FILE = path.join(__dirname, "calls.json");
 
@@ -882,11 +877,6 @@ function scheduleDailyUpdate() {
 
     console.log(`Scheduled the first update in ${Math.round(delay / 1000 / 60)} minutes.`);
 }
-
-// Run the scheduling function when the bot starts
-client.once('ready', () => {
-    scheduleDailyUpdate();
-});
 
 client.login(process.env.TOKEN);
 
