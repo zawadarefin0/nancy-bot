@@ -10,6 +10,13 @@ require('dotenv').config();  // Load environment variables
 const readline = require('readline');
 
 
+client.on('messageCreate', async message => {
+    if (message.content === '!shutdown' && message.author.id === 'YOUR_DISCORD_ID') {
+        await message.channel.send('Bot is shutting down...');
+        process.exit();
+    }
+});
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
