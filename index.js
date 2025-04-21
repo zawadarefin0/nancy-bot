@@ -24,9 +24,21 @@ const client = new Client({
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
     
-    loadTodoLists(); // Load saved to-do lists on bot startup
+    const channel = client.channels.cache.get('1361031045004398718'); // Replace with your channel ID
+    if (channel) {
+        const embed = new EmbedBuilder()
+            .setColor(0x99e4ff) // Green color
+            .setTitle('Bot Online')
+            .setDescription('The bot is running!')
+            .setTimestamp()
+            .setFooter({ text: 'Bot Status', iconURL: client.user.displayAvatarURL() });
 
-    
+        channel.send({ embeds: [embed] });
+    } else {
+        console.error('Channel not found for startup message.');
+    }
+
+    loadTodoLists(); // Load saved to-do lists on bot startup
     scheduleDailyUpdate();
 
 
@@ -76,7 +88,7 @@ client.on('messageCreate', (message) => {
     }
 });
 
-client.on('messageCreate', (message) => {
+client.on('messageCreate', (message) => {       
     if (message.content === '!nancy') {
         message.channel.send('I love Zawad!')
     }
