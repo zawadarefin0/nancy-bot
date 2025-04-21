@@ -186,6 +186,7 @@ client.on('messageCreate', (message) => {
             .setDescription('Here are all the commands you can use:')
             .addFields(
                 { name: '・!help', value: '୨୧ List all the commands available for you.' },
+                { name: '・ !shutdown', value: '୨୧ Manually shutdown the bot'}
             )
             .setTimestamp()
             .setImage(`https://imgur.com/q2YQXz6`)
