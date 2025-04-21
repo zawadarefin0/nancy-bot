@@ -11,7 +11,7 @@ const readline = require('readline');
 
 
 client.on('messageCreate', async message => {
-    if (message.content === '!shutdown' && message.author.id === 'YOUR_DISCORD_ID') {
+    if (message.content === '!shutdown' && message.author.id === '1361031045004398718') {
         await message.channel.send('Bot is shutting down...');
         process.exit();
     }
