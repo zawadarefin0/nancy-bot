@@ -64,6 +64,92 @@ client.once('ready', () => {
     }
 });
 
+
+client.on('messageCreate', async (message) => {
+    if (message.content === '!shutdown') {
+        if (message.author.id !== '359616511561826305') { // Replace with your Discord user ID
+            return message.reply("You are not daddy.");
+        }
+
+        const channel = client.channels.cache.get('1361031045004398718'); // Replace with your channel ID
+        if (channel) {
+            const embed = new EmbedBuilder()
+                .setColor(0xff0000) // Red color
+                .setTitle('Shutting Down')
+                .setDescription('The bot is shutting down as requested.')
+                .setTimestamp()
+                .setFooter({ text: 'Bot Status', iconURL: client.user.displayAvatarURL() });
+
+            await channel.send({ embeds: [embed] });
+        }
+
+        console.log('Bot is shutting down...');
+        process.exit(0); // Exit the process
+    }
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+
+    const channel = client.channels.cache.get('1361031045004398718'); // Replace with your channel ID
+    if (channel) {
+        const embed = new EmbedBuilder()
+            .setColor(0xff0000) // Red color
+            .setTitle('Bot Crashed')
+            .setDescription('The bot has encountered an error and crashed.')
+            .addFields({ name: 'Error', value: `\`\`\`${error.message}\`\`\`` })
+            .setTimestamp()
+            .setFooter({ text: 'Bot Status', iconURL: client.user.displayAvatarURL() });
+
+        channel.send({ embeds: [embed] }).catch(console.error);
+    }
+
+    process.exit(1); // Exit the process
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection:', reason);
+
+    const channel = client.channels.cache.get('1361031045004398718'); // Replace with your channel ID
+    if (channel) {
+        const embed = new EmbedBuilder()
+            .setColor(0xff0000) // Red color
+            .setTitle('Bot Crashed')
+            .setDescription('The bot has encountered an unhandled promise rejection and crashed.')
+            .addFields({ name: 'Reason', value: `\`\`\`${reason}\`\`\`` })
+            .setTimestamp()
+            .setFooter({ text: 'Bot Status', iconURL: client.user.displayAvatarURL() });
+
+        channel.send({ embeds: [embed] }).catch(console.error);
+    }
+
+    process.exit(1); // Exit the process
+});
+
+process.on('SIGINT', async () => {
+    console.log('Bot is shutting down due to SIGINT (CTRL+C)...');
+
+    const channel = client.channels.cache.get('1361031045004398718'); // Replace with your channel ID
+    if (channel) {
+        const embed = new EmbedBuilder()
+            .setColor(0xff0000) // Red color
+            .setTitle('Shutting Down')
+            .setDescription('The bot is shutting down due to a manual termination.')
+            .setTimestamp()
+            .setFooter({ text: 'Bot Status', iconURL: client.user.displayAvatarURL() });
+
+        try {
+            await channel.send({ embeds: [embed] });
+        } catch (error) {
+            console.error('Failed to send shutdown message:', error);
+        }
+    } else {
+        console.error('Channel not found for shutdown message.');
+    }
+
+    process.exit(0); // Exit the process
+});
+
 client.on('messageCreate', (message) => {
     if (message.content === '!ping') {
         message.channel.send('Pong!');
