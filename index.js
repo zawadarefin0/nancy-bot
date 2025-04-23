@@ -244,7 +244,7 @@ client.on('messageCreate', async (message) => {
         }
 
         const args = message.content.split(' ');
-        const amount = parseInt(args[1]);
+        const amount = parseInt(args[1])+1;
 
         if (isNaN(amount) || amount <= 0 || amount > 1000) {
             return message.reply('Please provide a number between 1 and 1000.');
