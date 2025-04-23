@@ -236,29 +236,52 @@ client.on('messageCreate', (message) => {
     }
 });
 
-// Purge chat
 client.on('messageCreate', async (message) => {
-    if (message.content.startsWith('!purge')) {
-        if (!message.member.permissions.has('MANAGE_MESSAGES')) {
-            return message.reply("You don't have permission to use this command.");
-        }
-
-        const args = message.content.split(' ');
-        const amount = parseInt(args[1])+1;
-
-        if (isNaN(amount) || amount <= 0 || amount > 1000) {
-            return message.reply('Please provide a number between 1 and 1000.');
-        }
-
+    if (message.content === '!purge' && message.reference) {
         try {
-            await message.channel.bulkDelete(amount, true);
-            message.channel.send(`Successfully deleted ${amount-1} messages.`).then(msg => {
-                setTimeout(() => msg.delete(), 5000);
-            });
+            // Get the message being replied to
+            const repliedMessage = await message.channel.messages.fetch(message.reference.messageId);
+
+            // Fetch messages in the channel
+            const messages = await message.channel.messages.fetch({ limit: 100 });
+
+            // Filter messages between the replied message and the command message
+            const messagesToDelete = messages.filter(
+                (msg) => msg.createdTimestamp > repliedMessage.createdTimestamp && msg.createdTimestamp < message.createdTimestamp
+            );
+
+            // Bulk delete the filtered messages
+            if (messagesToDelete.size > 0) {
+                await message.channel.bulkDelete(messagesToDelete, true);
+
+                // Delete the replied message
+                await repliedMessage.delete();
+
+                // Send a confirmation message and delete it after 5 seconds
+                message.channel.send(`Successfully deleted ${messagesToDelete.size + 1} messages.`).then((msg) => {
+                    setTimeout(() => msg.delete(), 5000); // Delete the confirmation message after 5 seconds
+                });
+            } else {
+                message.channel.send('No messages found to delete.').then((msg) => {
+                    setTimeout(() => msg.delete(), 5000); // Delete the message after 5 seconds
+                });
+            }
+
+            // Delete the command message
+            await message.delete();
         } catch (error) {
             console.error('Error deleting messages:', error);
-            message.reply('There was an error trying to delete messages in this channel!');
+            message.channel.send('There was an error trying to delete messages in this channel.').then((msg) => {
+                setTimeout(() => msg.delete(), 5000); // Delete the error message after 5 seconds
+            });
         }
+    } else if (message.content === '!purge') {
+        message.channel.send('Please reply to a message to use this command.').then((msg) => {
+            setTimeout(() => msg.delete(), 5000); // Delete the message after 5 seconds
+        });
+
+        // Delete the command message
+        await message.delete();
     }
 });
 
@@ -346,7 +369,7 @@ client.on('messageCreate', (message) => {
             .setDescription('Commands to moderate the server:')
             .addFields(
                 { name: '・ !shutdown', value: '୨୧ Manually shutdown the bot'},
-                { name: '・ !purge [1-1000]', value: '୨୧ Remove amount of message defined by command parameters' },
+                { name: '・ !purge ', value: '୨୧ Remove amount of message defined by which message you reply to' },
             )
             .setTimestamp()
             .setImage(`https://imgur.com/q2YQXz6`)
