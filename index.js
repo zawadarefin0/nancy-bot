@@ -252,7 +252,7 @@ client.on('messageCreate', async (message) => {
 
         try {
             await message.channel.bulkDelete(amount, true);
-            message.channel.send(`Successfully deleted ${amount} messages.`).then(msg => {
+            message.channel.send(`Successfully deleted ${amount-1} messages.`).then(msg => {
                 setTimeout(() => msg.delete(), 5000);
             });
         } catch (error) {
