@@ -1,4 +1,4 @@
-const path = require("path"); // ✅ FIX: Import the 'path' module
+const path = require("path"); 
 const fs = require("fs");
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ActivityType } = require('discord.js');
 const keepAlive = require(`./server`);
@@ -284,7 +284,6 @@ client.on('messageCreate', (message) => {
             .setDescription('Here are all the commands you can use:')
             .addFields(
                 { name: '・!help', value: '୨୧ List all the commands available for you.' },
-                { name: '・ !shutdown', value: '୨୧ Manually shutdown the bot'}
             )
             .setTimestamp()
             .setImage(`https://imgur.com/q2YQXz6`)
@@ -323,6 +322,20 @@ client.on('messageCreate', (message) => {
 
         const helpEmbed4 = new EmbedBuilder()
             .setColor(0xe3c7ff)
+            .setTitle('🔨 Moderation Commands')
+            .setDescription('Commands to moderate the server:')
+            .addFields(
+                { name: '・ !shutdown', value: '୨୧ Manually shutdown the bot'},
+                { name: '・ !purge [1-1000]', value: '୨୧ Remove amount of message defined by command parameters' },
+            )
+            .setTimestamp()
+            .setImage(`https://imgur.com/q2YQXz6`)
+            .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
+
+        message.channel.send({ embeds: [helpEmbed5] });
+
+        const helpEmbed5 = new EmbedBuilder()
+            .setColor(0xe3c7ff)
             .setTitle('🎀 Misc commmands')
             .setDescription('All the misc cutie patootie commands ❤:')
             .addFields(
@@ -330,6 +343,7 @@ client.on('messageCreate', (message) => {
                 { name: '・ !ztimetable', value: "୨୧ Display Zawad's timetable" },
                 { name: '・ !zawad', value: '୨୧ A very honest message quoting the greatest Zawad himself' },
                 { name: '・ !nancy', value: '୨୧ A cute message quoting the princess Nancy herself' },
+                { name: '・ !purge [1-1000]', value: '୨୧ Remove amount of message defined by command parameters' },
             )
             .setTimestamp()
             .setImage(`https://imgur.com/q2YQXz6`)
