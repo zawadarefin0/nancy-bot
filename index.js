@@ -186,7 +186,7 @@ client.on('messageCreate', (message) => {
             .setColor(0xedb0ff) // Blue color
             .setTitle('I Love Nancy!')
         .setDescription("thank you Nancy for being my girlfriend. i didn't think you would play such a big part in my life, but here we are i guess. Thank for making every day brighter. thank you for being so cute, pretty, such a cute voice, and having such a bright personality and truly just being perfect in every way. you truly can't stop making me happy, and certainly can't stop having amazing days if you are there. you are the best my pookie!! i love everything you to do and im seriously just addicted to you. i love playing valorant with you and i love spending time with you!! i love hearing your voice and i love seeing you just being so cute. every time i see you every day irl i am just filled with joy from your presence, you truly make me SO happy. i hope we can spend a lot more time on this world together, and we are never breaking up because you are stuck with me whether you like it or not. I LOVE U NANU!!!")
-        .setImage(`https://tenor.com/view/milkandmocha-bearcouple-kisses-kiss-love-gif-570994681855767756`)
+        .setImage(`https://cdn.discordapp.com/attachments/1345360596828426280/1364528661688221777/kiss-kitty-mwah-kitty-ezgif.com-video-to-gif-converter.gif?ex=6809ffd8&is=6808ae58&hm=1da0ad30fdc61b02b892fc252a3d0a2d8d78978fdb85a0516e90ecda8449851f&`)
             .setTimestamp()
             .setFooter({ text: 'nancy <3', iconURL: message.author.displayAvatarURL() });
 
