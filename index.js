@@ -4,7 +4,6 @@ const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectM
 const keepAlive = require(`./server`);
 // const express = require('express');
 // const app = express();
-// tracker branch
 
 
 require('dotenv').config();  // Load environment variables
