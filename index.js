@@ -236,6 +236,7 @@ client.on('messageCreate', (message) => {
     }
 });
 
+// Purge command
 client.on('messageCreate', async (message) => {
     if (message.content === '!purge' && message.reference) {
         try {
