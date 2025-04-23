@@ -329,6 +329,9 @@ client.on('messageCreate', (message) => {
             { name: '・ !t start [task name]', value: '୨୧ Starts the tracker'},
             { name: '・ !t end', value: '୨୧ Ends the tracker'},
             { name: '・ !t duration', value: '୨୧ Check the duration of your tracker'},
+            { name: '・ !t today', value: "୨୧ Check today's stats"},
+            { name: '・ !t week', value: "୨୧ Starts this week's stats"},
+            { name: '・ !t month', value: "୨୧ Starts this month's stats"},
         )
         .setTimestamp()
         .setImage(`https://imgur.com/q2YQXz6`)
@@ -351,7 +354,7 @@ client.on('messageCreate', (message) => {
         message.channel.send({ embeds: [helpEmbed5] });
 
         const helpEmbed6 = new EmbedBuilder()
-            .setColor(0xedc4f5)
+            .setColor(0xffc7f0)
             .setTitle('🎀 Misc commmands:')
             .setDescription('All the misc cutie patootie commands ❤:')
             .addFields(
@@ -359,7 +362,6 @@ client.on('messageCreate', (message) => {
                 { name: '・ !ztimetable', value: "୨୧ Display Zawad's timetable" },
                 { name: '・ !zawad', value: '୨୧ A very honest message quoting the greatest Zawad himself' },
                 { name: '・ !nancy', value: '୨୧ A cute message quoting the princess Nancy herself' },
-                { name: '・ !purge [1-1000]', value: '୨୧ Remove amount of message defined by command parameters' },
             )
             .setTimestamp()
             .setImage(`https://imgur.com/q2YQXz6`)
