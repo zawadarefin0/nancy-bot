@@ -308,7 +308,7 @@ client.on('messageCreate', (message) => {
         message.channel.send({ embeds: [helpEmbed2] });
 
         const helpEmbed3 = new EmbedBuilder()
-            .setColor(0xc7e5ff)
+            .setColor(0xc2ffd2)
             .setTitle('📝 Todolist')
             .setDescription('Commands to operate the todolist:')
             .addFields(
@@ -322,8 +322,23 @@ client.on('messageCreate', (message) => {
         message.channel.send({ embeds: [helpEmbed3] });
 
         const helpEmbed4 = new EmbedBuilder()
+        .setColor(0xc7e5ff)
+        .setTitle('⏱ Tracker Commands')
+        .setDescription('Commands to operate the tracker:')
+        .addFields(
+            { name: '・ !t start [task name]', value: '୨୧ Starts the tracker'},
+            { name: '・ !t end', value: '୨୧ Ends the tracker'},
+            { name: '・ !t duration', value: '୨୧ Check the duration of your tracker'},
+        )
+        .setTimestamp()
+        .setImage(`https://imgur.com/q2YQXz6`)
+        .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
+
+    message.channel.send({ embeds: [helpEmbed4] });
+
+        const helpEmbed5 = new EmbedBuilder()
             .setColor(0xe3c7ff)
-            .setTitle('🔨 Moderation Commands')
+            .setTitle('🔨 Moderation Commands:')
             .setDescription('Commands to moderate the server:')
             .addFields(
                 { name: '・ !shutdown', value: '୨୧ Manually shutdown the bot'},
@@ -335,9 +350,9 @@ client.on('messageCreate', (message) => {
 
         message.channel.send({ embeds: [helpEmbed5] });
 
-        const helpEmbed5 = new EmbedBuilder()
-            .setColor(0xe3c7ff)
-            .setTitle('🎀 Misc commmands')
+        const helpEmbed6 = new EmbedBuilder()
+            .setColor(0xedc4f5)
+            .setTitle('🎀 Misc commmands:')
             .setDescription('All the misc cutie patootie commands ❤:')
             .addFields(
                 { name: '・ !ntimetable', value: "୨୧ Display Nancy's timetable" },
@@ -350,7 +365,7 @@ client.on('messageCreate', (message) => {
             .setImage(`https://imgur.com/q2YQXz6`)
             .setFooter({ text: '<3 Nancy', iconURL: message.author.displayAvatarURL() });
 
-        message.channel.send({ embeds: [helpEmbed4] });
+        message.channel.send({ embeds: [helpEmbed6] });
     }
 });
 
