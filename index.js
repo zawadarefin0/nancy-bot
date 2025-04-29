@@ -412,6 +412,8 @@ client.on('messageCreate', (message) => {
         .addFields(
             { name: '・ !t start [task name]', value: '୨୧ Starts the tracker'},
             { name: '・ !t end', value: '୨୧ Ends the tracker'},
+            { name: '・ !t pause', value: '୨୧ Pauses active timer'},
+            { name: '・ !t unpauses', value: '୨୧ Continues active timer'},
             { name: '・ !t duration', value: '୨୧ Check the duration of your tracker'},
             { name: '・ !t today', value: "୨୧ Check today's stats"},
             { name: '・ !t week', value: "୨୧ Starts this week's stats"},
