@@ -19,7 +19,8 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.GuildMembers
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessageReactions
     ]
 });
 
@@ -657,8 +658,111 @@ client.on("messageCreate", (message) => {
                     .setTimestamp(),
             ],
         });
+
+        // Start the periodic check-in
+        startTaskCheckIn(userId, taskName, message.channel);
     }
 });
+
+async function startTaskCheckIn(userId, taskName, channel) {
+    const CHECK_IN_INTERVAL = 15 * 60 * 1000; // 15 minutes
+    const CHECK_IN_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+    const checkInInterval = setInterval(async () => {
+        // Check if the user still has an active session
+        loadStudyStats();
+        const session = studyStats[userId]?.activeSession;
+        if (!session || session.taskName !== taskName) {
+            clearInterval(checkInInterval); // Stop the check-in if the task is no longer active
+            return;
+        }
+
+        // Send a check-in message
+        const checkInMessage = await channel.send({
+            content: `<@${userId}>, are you still working on **${taskName}**?`,
+        });
+
+        // React with a green check mark
+        await checkInMessage.react("✅");
+
+        // Create a reaction collector to wait for the user's response
+        const filter = (reaction, user) => {
+            console.log(`Reaction detected: ${reaction.emoji.name} by ${user.tag}`);
+            return reaction.emoji.name === "✅" && user.id === userId;
+        };
+
+        const collector = checkInMessage.createReactionCollector({ filter, time: CHECK_IN_TIMEOUT });
+
+        let userReacted = false; // Track if the user reacted
+
+        collector.on("collect", async (reaction, user) => {
+            if (user.id === userId) {
+                console.log("user.id === userId successful");
+                userReacted = true; // Mark that the user has reacted
+                try {
+                    await checkInMessage.reply("Task continued.");
+                } catch (error) {
+                    console.error("Failed to send 'Task continued' message:", error);
+                }
+                collector.stop(); // Stop the collector after the user reacts
+            }
+        });
+
+        collector.on("end", (collected) => {
+            if (!userReacted) {
+                // User did not react in time, stop the task
+                stopTask(userId, channel);
+                clearInterval(checkInInterval); // Stop the periodic check-in
+            }
+        });
+    }, CHECK_IN_INTERVAL);
+}
+
+// Function to stop a task
+function stopTask(userId, channel) {
+    loadStudyStats();
+
+    const session = studyStats[userId]?.activeSession;
+    if (!session) return;
+
+    // Calculate the total duration
+    let totalDuration;
+    if (session.paused) {
+        totalDuration = session.pausedDuration || 0;
+    } else {
+        const currentTime = Date.now();
+        totalDuration = (session.pausedDuration || 0) + (currentTime - session.startTime);
+    }
+
+    // Use Luxon to get the current date in Sydney timezone
+    const sydneyTime = DateTime.now().setZone("Australia/Sydney");
+    const dateKey = sydneyTime.toISODate(); // Format: YYYY-MM-DD
+
+    // Save the session data to the stats file
+    if (!studyStats[userId][dateKey]) studyStats[userId][dateKey] = [];
+    studyStats[userId][dateKey].push({ taskName: session.taskName, duration: totalDuration });
+
+    // Remove the active session
+    delete studyStats[userId].activeSession;
+    saveStudyStats();
+
+    // Convert the total duration to hours, minutes, and seconds
+    const hours = Math.floor(totalDuration / 3600000);
+    const minutes = Math.floor((totalDuration % 3600000) / 60000);
+    const seconds = Math.floor((totalDuration % 60000) / 1000);
+
+    // Send the confirmation message
+    channel.send({
+        embeds: [
+            new EmbedBuilder()
+                .setColor(0xff0000)
+                .setTitle("Task Stopped")
+                .setDescription(`Your task **${session.taskName}** has been stopped due to inactivity.`)
+                .addFields({ name: "Total Time", value: `${hours}h ${minutes}m ${seconds}s` })
+                .setTimestamp(),
+        ],
+    });
+}
 
 client.on("messageCreate", (message) => {
     if (message.content === "!t pause") {
