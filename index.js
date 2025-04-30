@@ -1,6 +1,7 @@
 const path = require("path"); 
 const fs = require("fs");
-const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ActivityType } = require('discord.js');
+const { DateTime } = require("luxon"); // Import Luxon
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ActivityType, Message } = require('discord.js');
 const keepAlive = require(`./server`);
 // const express = require('express');
 // const app = express();
@@ -17,7 +18,8 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.GuildMembers
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessageReactions
     ]
 });
 
@@ -47,6 +49,15 @@ client.once('ready', () => {
         status: 'online' // Other options: 'idle', 'dnd', 'invisible'
 
     });
+
+    loadStudyStats();
+
+    for (const userId in studyStats) {
+        if (studyStats[userId].activeSession) {
+            const { taskName, startTime } = studyStats[userId].activeSession;
+            console.log(`Resumed active session for user ${userId}: ${taskName} (started at ${new Date(startTime).toLocaleString()})`);
+        }
+    };
     
     updateVoiceChannelNames();
 
@@ -64,6 +75,54 @@ client.once('ready', () => {
     }
 });
 
+
+// Function to calculate the delay until the next 6 PM
+function calculateDelayUntil6PM() {
+    const now = new Date();
+    const next6PM = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        18, 0, 0, 0 // Set time to 6:00 PM
+    );
+
+    // If it's already past 6 PM, schedule for the next day
+    if (now > next6PM) {
+        next6PM.setDate(next6PM.getDate() + 1);
+    }
+
+    return next6PM - now; // Difference in milliseconds
+}
+
+// Function to send a daily message
+function scheduleDailyMessage() {
+    const delay = calculateDelayUntil6PM();
+
+    setTimeout(() => {
+        // Send the message at 6 PM
+        const channel = client.channels.cache.get('1345359086593507341'); // Replace with your channel ID
+
+        if (channel) {
+            channel.send("@everyone Reminder to do Cozy.").catch(console.error);
+        } else {
+            console.error('Channel not found for daily message.');
+        }
+
+        // Schedule the next message for the following day
+        setInterval(() => {
+            if (channel) {
+                channel.send("@everyone Reminder to do Cozy.").catch(console.error);
+            } else {
+                console.error('Channel not found for daily message.');
+            }
+        }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+    }, delay);
+
+    console.log(`Scheduled the first daily message in ${Math.round(delay / 1000 / 60)} minutes.`);
+}
+
+// Call the function to schedule the daily message
+scheduleDailyMessage();
 
 client.on('messageCreate', async (message) => {
     if (message.content === '!shutdown') {
@@ -352,6 +411,8 @@ client.on('messageCreate', (message) => {
         .addFields(
             { name: '・ !t start [task name]', value: '୨୧ Starts the tracker'},
             { name: '・ !t end', value: '୨୧ Ends the tracker'},
+            { name: '・ !t pause', value: '୨୧ Pauses active timer'},
+            { name: '・ !t unpauses', value: '୨୧ Continues active timer'},
             { name: '・ !t duration', value: '୨୧ Check the duration of your tracker'},
             { name: '・ !t today', value: "୨୧ Check today's stats"},
             { name: '・ !t week', value: "୨୧ Starts this week's stats"},
@@ -533,8 +594,728 @@ client.on('messageCreate', (message) => {
     }
 });
 
-// Call Duration
+// TRACKER START
+const STUDY_STATS_FILE = path.join(__dirname, "studystats.json");
 
+let studyStats = {}; // Store study stats for all users
+
+// Load study stats from file
+function loadStudyStats() {
+    try {
+        const data = fs.readFileSync(STUDY_STATS_FILE, "utf-8");
+        studyStats = JSON.parse(data);
+    } catch (err) {
+        studyStats = {};
+    }
+}
+
+// Save study stats to file
+function saveStudyStats() {
+    fs.writeFileSync(STUDY_STATS_FILE, JSON.stringify(studyStats, null, 2));
+}
+
+// Load study stats on bot startup
+loadStudyStats();
+
+client.on("messageCreate", (message) => {
+    if (message.content.startsWith("!t start")) {
+        const userId = message.author.id;
+        const taskName = message.content.slice(9).trim();
+
+        if (!taskName) {
+            return message.channel.send({
+                embeds: [new EmbedBuilder().setColor(0xff0000).setTitle("Error").setDescription("Please provide a task name.")],
+            });
+        }
+
+        loadStudyStats();
+
+        if (studyStats[userId]?.activeSession) {
+            const { taskName, paused } = studyStats[userId].activeSession;
+            return message.channel.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(0xff0000)
+                        .setTitle("Error")
+                        .setDescription(
+                            paused
+                                ? `You have a paused session for **${taskName}**. Use \`!t unpause\` or \`!t stop\` to continue.`
+                                : `You already have an active session for **${taskName}**. Use \`!t stop\` to end it.`
+                        ),
+                ],
+            });
+        }
+
+        if (!studyStats[userId]) studyStats[userId] = {};
+        studyStats[userId].activeSession = { taskName, startTime: Date.now(), paused: false, pausedDuration: 0 };
+        saveStudyStats();
+
+        message.channel.send({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(0x00ff00)
+                    .setTitle("Study Session Started")
+                    .setDescription(`You have started studying **${taskName}**.`)
+                    .setTimestamp(),
+            ],
+        });
+
+        // Start the periodic check-in
+        startTaskCheckIn(userId, taskName, message.channel);
+    }
+});
+
+async function startTaskCheckIn(userId, taskName, channel) {
+    const CHECK_IN_INTERVAL = 15 * 60 * 1000; // 15 minutes
+    const CHECK_IN_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+    const checkInInterval = setInterval(async () => {
+        // Check if the user still has an active session
+        loadStudyStats();
+        const session = studyStats[userId]?.activeSession;
+        if (!session || session.taskName !== taskName) {
+            clearInterval(checkInInterval); // Stop the check-in if the task is no longer active
+            return;
+        }
+
+        // Send a check-in message
+        const checkInMessage = await channel.send({
+            content: `<@${userId}>, are you still working on **${taskName}**?`,
+        });
+
+        // React with a green check mark
+        await checkInMessage.react("✅");
+
+        // Create a reaction collector to wait for the user's response
+        const filter = (reaction, user) => {
+            console.log(`Reaction detected: ${reaction.emoji.name} by ${user.tag}`);
+            return reaction.emoji.name === "✅" && user.id === userId;
+        };
+
+        const collector = checkInMessage.createReactionCollector({ filter, time: CHECK_IN_TIMEOUT });
+
+        let userReacted = false; // Track if the user reacted
+
+        collector.on("collect", async (reaction, user) => {
+            if (user.id === userId) {
+                console.log("user.id === userId successful");
+                userReacted = true; // Mark that the user has reacted
+                try {
+                    await checkInMessage.reply("Task continued.");
+                } catch (error) {
+                    console.error("Failed to send 'Task continued' message:", error);
+                }
+                collector.stop(); // Stop the collector after the user reacts
+            }
+        });
+
+        collector.on("end", (collected) => {
+            if (!userReacted) {
+                // User did not react in time, stop the task
+                stopTask(userId, channel);
+                clearInterval(checkInInterval); // Stop the periodic check-in
+            }
+        });
+    }, CHECK_IN_INTERVAL);
+}
+
+// Function to stop a task
+function stopTask(userId, channel) {
+    loadStudyStats();
+
+    const session = studyStats[userId]?.activeSession;
+    if (!session) return;
+
+    // Calculate the total duration
+    let totalDuration;
+    if (session.paused) {
+        totalDuration = session.pausedDuration || 0;
+    } else {
+        const currentTime = Date.now();
+        totalDuration = (session.pausedDuration || 0) + (currentTime - session.startTime);
+    }
+
+    // Use Luxon to get the current date in Sydney timezone
+    const sydneyTime = DateTime.now().setZone("Australia/Sydney");
+    const dateKey = sydneyTime.toISODate(); // Format: YYYY-MM-DD
+
+    // Save the session data to the stats file
+    if (!studyStats[userId][dateKey]) studyStats[userId][dateKey] = [];
+    studyStats[userId][dateKey].push({ taskName: session.taskName, duration: totalDuration });
+
+    // Remove the active session
+    delete studyStats[userId].activeSession;
+    saveStudyStats();
+
+    // Convert the total duration to hours, minutes, and seconds
+    const hours = Math.floor(totalDuration / 3600000);
+    const minutes = Math.floor((totalDuration % 3600000) / 60000);
+    const seconds = Math.floor((totalDuration % 60000) / 1000);
+
+    // Send the confirmation message
+    channel.send({
+        embeds: [
+            new EmbedBuilder()
+                .setColor(0xff0000)
+                .setTitle("Task Stopped")
+                .setDescription(`Your task **${session.taskName}** has been stopped due to inactivity.`)
+                .addFields({ name: "Total Time", value: `${hours}h ${minutes}m ${seconds}s` })
+                .setTimestamp(),
+        ],
+    });
+}
+
+client.on("messageCreate", (message) => {
+    if (message.content === "!t pause") {
+        const userId = message.author.id;
+
+        loadStudyStats();
+
+        if (!studyStats[userId]?.activeSession || studyStats[userId].activeSession.paused) {
+            return message.channel.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(0xff0000)
+                        .setTitle("Error")
+                        .setDescription("You don't have an active session to pause."),
+                ],
+            });
+        }
+
+        const session = studyStats[userId].activeSession;
+
+        // Calculate the time elapsed since the task started and add it to pausedDuration
+        const currentTime = Date.now();
+        session.pausedDuration += currentTime - session.startTime;
+
+        session.paused = true;
+        session.pausedStartTime = currentTime; // Record when the session was paused
+        saveStudyStats();
+
+        message.channel.send({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(0xffc107)
+                    .setTitle("Study Session Paused")
+                    .setDescription(`Your session for **${session.taskName}** has been paused.`)
+                    .setTimestamp(),
+            ],
+        });
+    }
+});
+
+client.on("messageCreate", (message) => {
+    if (message.content === "!t unpause") {
+        const userId = message.author.id;
+
+        loadStudyStats();
+
+        if (!studyStats[userId]?.activeSession || !studyStats[userId].activeSession.paused) {
+            return message.channel.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(0xff0000)
+                        .setTitle("Error")
+                        .setDescription("You don't have a paused session to unpause."),
+                ],
+            });
+        }
+
+        const session = studyStats[userId].activeSession;
+
+        session.paused = false;
+        session.startTime = Date.now(); // Reset the start time to now
+        delete session.pausedStartTime; // Remove the paused start time
+        saveStudyStats();
+
+        message.channel.send({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(0x00ff00)
+                    .setTitle("Study Session Resumed")
+                    .setDescription(`Your session for **${session.taskName}** has been resumed.`)
+                    .setTimestamp(),
+            ],
+        });
+    }
+});
+client.on("messageCreate", (message) => {
+    if (message.content === "!t stop") {
+        const userId = message.author.id;
+
+        loadStudyStats();
+
+        if (!studyStats[userId]?.activeSession) {
+            return message.channel.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(0xff0000)
+                        .setTitle("Error")
+                        .setDescription("You don't have an active session to stop."),
+                ],
+            });
+        }
+
+        const session = studyStats[userId].activeSession;
+
+        // Calculate the total duration
+        let totalDuration;
+        if (session.paused) {
+            // If the timer is paused, use the paused duration
+            totalDuration = session.pausedDuration || 0;
+        } else {
+            // If the timer is running, calculate the total duration
+            const currentTime = Date.now();
+            totalDuration = (session.pausedDuration || 0) + (currentTime - session.startTime);
+        }
+
+        // Use Luxon to get the current date in Sydney timezone
+        const sydneyTime = DateTime.now().setZone("Australia/Sydney");
+        const dateKey = sydneyTime.toISODate(); // Format: YYYY-MM-DD
+
+        // Save the session data to the stats file
+        if (!studyStats[userId][dateKey]) studyStats[userId][dateKey] = [];
+        studyStats[userId][dateKey].push({ taskName: session.taskName, duration: totalDuration });
+
+        // Remove the active session
+        delete studyStats[userId].activeSession;
+        saveStudyStats();
+
+        // Convert the total duration to hours, minutes, and seconds
+        const hours = Math.floor(totalDuration / 3600000);
+        const minutes = Math.floor((totalDuration % 3600000) / 60000);
+        const seconds = Math.floor((totalDuration % 60000) / 1000);
+
+        // Send the confirmation message
+        message.channel.send({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(0x00ff00)
+                    .setTitle("Study Session Ended")
+                    .setDescription(`You studied **${session.taskName}** for **${hours}h ${minutes}m ${seconds}s**.`)
+                    .setTimestamp(),
+            ],
+        });
+    }
+});
+client.on("messageCreate", (message) => {
+    if (message.content === "!t duration") {
+        const userId = message.author.id;
+
+        loadStudyStats();
+
+        // Check if the user has an active session
+        if (!studyStats[userId]?.activeSession) {
+            return message.channel.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(0xff0000)
+                        .setTitle("No Active Task")
+                        .setDescription("You don't have an active task right now. Start one using `!t start [task name]`.")
+                        .setTimestamp(),
+                ],
+            });
+        }
+
+        const session = studyStats[userId].activeSession;
+
+        // Calculate the duration
+        let elapsedTime;
+        if (session.paused) {
+            // If the timer is paused, use the paused duration
+            elapsedTime = session.pausedDuration || 0;
+        } else {
+            // If the timer is running, calculate the elapsed time
+            const currentTime = Date.now();
+            elapsedTime = (session.pausedDuration || 0) + (currentTime - session.startTime);
+        }
+
+        const hours = Math.floor(elapsedTime / 3600000);
+        const minutes = Math.floor((elapsedTime % 3600000) / 60000);
+        const seconds = Math.floor((elapsedTime % 60000) / 1000);
+
+        // Send the duration and task name
+        message.channel.send({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(0x00ff00)
+                    .setTitle("Current Task Duration")
+                    .setDescription(`You have been working on **${session.taskName}** for:`)
+                    .addFields({
+                        name: "Duration",
+                        value: `${hours}h ${minutes}m ${seconds}s`,
+                    })
+                    .setTimestamp(),
+            ],
+        });
+    }
+});
+
+client.on("messageCreate", (message) => {
+    if (message.content.startsWith("!t daily")) {
+        const userId = message.author.id;
+        const args = message.content.split(" ").slice(2);
+
+        let dateKey;
+
+        if (args[0]) {
+            // Validate the date format (dd/mm/yy)
+            const dateRegex = /^\d{2}\/\d{2}\/\d{2}$/;
+            if (!dateRegex.test(args[0])) {
+                return message.channel.send({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(0xff0000)
+                            .setTitle("Invalid Date Format")
+                            .setDescription("Please provide the date in the format `dd/mm/yy`."),
+                    ],
+                });
+            }
+
+            // Convert the date to the format YYYY-MM-DD
+            const [day, month, year] = args[0].split("/");
+            dateKey = `20${year}-${month}-${day}`;
+        } else {
+            // Default to today's date in Sydney timezone using Luxon
+            const sydneyTime = DateTime.now().setZone("Australia/Sydney");
+            dateKey = sydneyTime.toISODate(); // Format: YYYY-MM-DD
+        }
+
+        loadStudyStats();
+
+        if (!studyStats[userId]?.[dateKey]) {
+            return message.channel.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(0xff0000)
+                        .setTitle("No Data")
+                        .setDescription(`No study data found for the specified date: **${dateKey}**.`),
+                ],
+            });
+        }
+
+        const tasks = studyStats[userId][dateKey];
+        const totalDuration = tasks.reduce((sum, task) => sum + task.duration, 0);
+
+        const hours = Math.floor(totalDuration / 3600000);
+        const minutes = Math.floor((totalDuration % 3600000) / 60000);
+        const seconds = Math.floor((totalDuration % 60000) / 1000);
+
+        const embed = new EmbedBuilder()
+            .setColor(0x00ff00)
+            .setTitle(`Study Stats for ${dateKey}`)
+            .setDescription(
+                tasks
+                    .map(
+                        (task, index) =>
+                            `**${index + 1}. ${task.taskName}** ${Math.floor(task.duration / 3600000)}h ${Math.floor(
+                                (task.duration % 3600000) / 60000
+                            )}m ${Math.floor((task.duration % 60000) / 1000)}s`
+                    )
+                    .join("\n")
+            )
+            .addFields({ name: "**Total Time**", value: `${hours}h ${minutes}m ${seconds}s` })
+            .setTimestamp();
+
+        message.channel.send({ embeds: [embed] });
+    }
+});
+client.on("messageCreate", (message) => {
+    if (message.content === "!t weekly") {
+        const userId = message.author.id;
+
+        loadStudyStats();
+
+        const today = new Date();
+        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay())); // Start of the week (Sunday)
+        const endOfWeek = new Date(today.setDate(today.getDate() + 6)); // End of the week (Saturday)
+
+        const weekStats = [];
+        let totalDuration = 0;
+
+        for (let d = new Date(startOfWeek); d <= endOfWeek; d.setDate(d.getDate() + 1)) {
+            const dateKey = d.toISOString().split("T")[0];
+            const tasks = studyStats[userId]?.[dateKey] || [];
+            const dayDuration = tasks.reduce((sum, task) => sum + task.duration, 0);
+
+            totalDuration += dayDuration;
+
+            weekStats.push({
+                date: dateKey,
+                duration: dayDuration,
+            });
+        }
+
+        const embed = new EmbedBuilder()
+            .setColor(0x00ff00)
+            .setTitle("Weekly Study Stats")
+            .setDescription(
+                weekStats
+                    .map(
+                        (day) =>
+                            `**${day.date}\n**Total Hours: ${Math.floor(day.duration / 3600000)}h ${Math.floor(
+                                (day.duration % 3600000) / 60000
+                            )}m ${Math.floor((day.duration % 60000) / 1000)}s\n`
+                    )
+                    .join("\n")
+            )
+            .addFields({
+                name: "Total Time",
+                value: `${Math.floor(totalDuration / 3600000)}h ${Math.floor((totalDuration % 3600000) / 60000)}m ${Math.floor(
+                    (totalDuration % 60000) / 1000
+                )}s`,
+            })
+            .setTimestamp();
+
+        message.channel.send({ embeds: [embed] });
+    }
+});
+
+// client.on("messageCreate", async (message) => {
+//     if (message.content === "!t weekly") {
+//         const userId = message.author.id;
+
+//         loadStudyStats();
+
+//         // Get the current date in Sydney timezone
+//         const sydneyTime = DateTime.now().setZone("Australia/Sydney");
+//         const startOfWeek = sydneyTime.startOf("week"); // Start of the current week (Sunday)
+//         const endOfWeek = sydneyTime.endOf("week"); // End of the current week (Saturday)
+
+//         // Send the initial embed for the current week
+//         sendWeeklyStatsEmbed(message, userId, startOfWeek);
+//     }
+// });
+
+// async function sendWeeklyStatsEmbed(messageOrInteraction, userId, startOfWeek) {
+//     const endOfWeek = startOfWeek.endOf("week"); // End of the week
+//     const weekStats = [];
+//     let totalDuration = 0;
+
+//     // Loop through each day of the week
+//     for (let d = startOfWeek; d <= endOfWeek; d = d.plus({ days: 1 })) {
+//         const dateKey = d.toISODate(); // Format: YYYY-MM-DD
+//         const tasks = studyStats[userId]?.[dateKey] || [];
+//         const dayDuration = tasks.reduce((sum, task) => sum + task.duration, 0);
+
+//         totalDuration += dayDuration;
+
+//         weekStats.push({
+//             date: dateKey,
+//             duration: dayDuration,
+//         });
+//     }
+
+//     // If no data exists for the week, show an error
+//     if (totalDuration === 0) {
+//         const noDataEmbed = new EmbedBuilder()
+//             .setColor(0xff0000)
+//             .setTitle("No Data")
+//             .setDescription("No study data found for this week.")
+//             .setTimestamp();
+
+//         if (messageOrInteraction.isRepliable?.() && !messageOrInteraction.replied && !messageOrInteraction.deferred) {
+//             return messageOrInteraction.reply({ embeds: [noDataEmbed], ephemeral: true });
+//         } else if (messageOrInteraction.channel) {
+//             return messageOrInteraction.channel.send({ embeds: [noDataEmbed] });
+//         }
+//     }
+
+//     const embed = new EmbedBuilder()
+//         .setColor(0x00ff00)
+//         .setTitle(`Weekly Study Stats (${startOfWeek.toFormat("dd/MM/yyyy")} - ${endOfWeek.toFormat("dd/MM/yyyy")})`)
+//         .setDescription(
+//             weekStats
+//                 .map(
+//                     (day) =>
+//                         `**${day.date}** - ${Math.floor(day.duration / 3600000)}h ${Math.floor(
+//                             (day.duration % 3600000) / 60000
+//                         )}m ${Math.floor((day.duration % 60000) / 1000)}s`
+//                 )
+//                 .join("\n")
+//         )
+//         .addFields({
+//             name: "Total Time",
+//             value: `${Math.floor(totalDuration / 3600000)}h ${Math.floor((totalDuration % 3600000) / 60000)}m ${Math.floor(
+//                 (totalDuration % 60000) / 1000
+//             )}s`,
+//         })
+//         .setTimestamp();
+
+//     const menu = new StringSelectMenuBuilder()
+//         .setCustomId("weekly_select")
+//         .setPlaceholder("Select an option")
+//         .addOptions([
+//             {
+//                 label: "Previous Week",
+//                 value: "previous",
+//                 description: "View stats for the previous week",
+//             },
+//             {
+//                 label: "Next Week",
+//                 value: "next",
+//                 description: "View stats for the next week",
+//             },
+//         ]);
+
+//     const row = new ActionRowBuilder().addComponents(menu);
+
+//     if (messageOrInteraction.isRepliable?.() && !messageOrInteraction.replied && !messageOrInteraction.deferred) {
+//         // If the interaction is repliable and not already replied or deferred, update it
+//         await messageOrInteraction.update({ embeds: [embed], components: [row] });
+//     } else if (messageOrInteraction instanceof Message) {
+//         // If it's a message, send a new message
+//         const sentMessage = await messageOrInteraction.channel.send({ embeds: [embed], components: [row] });
+
+//         // Handle interaction for week navigation
+//         const collector = sentMessage.createMessageComponentCollector({ time: 60000 }); // 1-minute timeout
+
+//         collector.on("collect", async (interaction) => {
+//             if (!interaction.isStringSelectMenu()) return;
+        
+//             const selectedOption = interaction.values[0];
+//             let newStartOfWeek;
+        
+//             if (selectedOption === "previous") {
+//                 newStartOfWeek = startOfWeek.minus({ weeks: 1 }); // Go to the previous week
+//             } else if (selectedOption === "next") {
+//                 newStartOfWeek = startOfWeek.plus({ weeks: 1 }); // Go to the next week
+        
+//                 // Check if the future week exists
+//                 const futureDate = DateTime.now().setZone("Australia/Sydney");
+//                 if (newStartOfWeek > futureDate.startOf("week")) {
+//                     try {
+//                         if (!interaction.replied && !interaction.deferred) {
+//                             return await interaction.reply({
+//                                 embeds: [
+//                                     new EmbedBuilder()
+//                                         .setColor(0xff0000)
+//                                         .setTitle("Future Week Not Available")
+//                                         .setDescription("You cannot view stats for a future week.")
+//                                         .setTimestamp(),
+//                                 ],
+//                                 ephemeral: true,
+//                             });
+//                         }
+//                     } catch (error) {
+//                         console.error("Failed to reply to interaction:", error);
+//                     }
+//                 }
+//             }
+        
+//             try {
+//                 // Only defer the interaction if it hasn't already been acknowledged
+//                 if (!interaction.deferred && !interaction.replied) {
+//                     await interaction.deferUpdate(); // Acknowledge the interaction
+//                 }
+//                 sendWeeklyStatsEmbed(interaction, userId, newStartOfWeek);
+//             } catch (error) {
+//                 console.error("Failed to defer or update interaction:", error);
+//             }
+//         });
+        
+//         collector.on("end", async (collected, reason) => {
+//             if (reason === "time") {
+//                 try {
+//                     await sentMessage.edit({ components: [] }); // Remove the dropdown after timeout
+//                 } catch (error) {
+//                     console.error("Failed to edit message after collector ended:", error);
+//                 }
+//             }
+//         });
+//     }
+// }
+
+client.on("messageCreate", async (message) => {
+    if (message.content === "!t monthly") {
+        const userId = message.author.id;
+
+        loadStudyStats();
+
+        // Group study stats by year and month
+        const monthlyStats = {};
+        for (const dateKey in studyStats[userId] || {}) {
+            const [year, month] = dateKey.split("-");
+            const yearMonthKey = `${year}-${month}`;
+
+            if (!monthlyStats[year]) monthlyStats[year] = {};
+            if (!monthlyStats[year][month]) monthlyStats[year][month] = 0;
+
+            const tasks = studyStats[userId][dateKey];
+            const totalDuration = tasks.reduce((sum, task) => sum + task.duration, 0);
+            monthlyStats[year][month] += totalDuration;
+        }
+
+        // Get the current year
+        const currentYear = new Date().getFullYear().toString();
+
+        // Send the initial embed for the current year
+        sendMonthlyStatsEmbed(message, userId, monthlyStats, currentYear);
+    }
+});
+
+// Function to send the monthly stats embed
+async function sendMonthlyStatsEmbed(message, userId, monthlyStats, year) {
+    const months = monthlyStats[year] || {};
+    const totalYearDuration = Object.values(months).reduce((sum, duration) => sum + duration, 0);
+
+    const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle(`Monthly Study Stats for ${year}`)
+        .setDescription(
+            Object.entries(months)
+                .map(([month, duration]) => {
+                    const hours = Math.floor(duration / 3600000);
+                    const minutes = Math.floor((duration % 3600000) / 60000);
+                    const seconds = Math.floor((duration % 60000) / 1000);
+                    return `**${month}** - ${hours}h ${minutes}m ${seconds}s`;
+                })
+                .join("\n") || "No data available for this year."
+        )
+        .addFields({
+            name: "Total Time",
+            value: `${Math.floor(totalYearDuration / 3600000)}h ${Math.floor((totalYearDuration % 3600000) / 60000)}m ${Math.floor(
+                (totalYearDuration % 60000) / 1000
+            )}s`,
+        })
+        .setTimestamp();
+
+    const years = Object.keys(monthlyStats);
+
+    const menu = new StringSelectMenuBuilder()
+        .setCustomId("monthly_select")
+        .setPlaceholder("Select a year")
+        .addOptions(
+            years.map((y) => ({
+                label: y,
+                value: y,
+                description: `View stats for ${y}`,
+                default: y === year,
+            }))
+        );
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    const sentMessage = await message.channel.send({ embeds: [embed], components: [row] });
+
+    // Handle interaction for year selection
+    const collector = sentMessage.createMessageComponentCollector({ time: 60000 }); // 1-minute timeout
+
+    collector.on("collect", async (interaction) => {
+        if (!interaction.isStringSelectMenu()) return;
+
+        const selectedYear = interaction.values[0];
+        await interaction.deferUpdate();
+        sendMonthlyStatsEmbed(interaction.message, userId, monthlyStats, selectedYear);
+    });
+
+    collector.on("end", () => {
+        sentMessage.edit({ components: [] }).catch(console.error); // Remove the dropdown after timeout
+    });
+}
+// TRACKER END
+
+// Call Duration
 let callStartTimes = {};  // To track call start times by channel ID
 let activeCalls = {};  // To track if a call is active in a channel
 
@@ -818,41 +1599,61 @@ client.on("messageCreate", async (message) => {
 client.on("interactionCreate", async (interaction) => {
     if (!interaction.isStringSelectMenu()) return;
 
-    const userId = interaction.user.id;
-    const selectedIndex = parseInt(interaction.values[0]);
+    const customId = interaction.customId;
 
-    // Ensure that the user has a to-do list
-    if (!todoLists[userId]) {
-        return interaction.reply({ content: "You don't have a to-do list yet.", ephemeral: true });
+    if (customId === "todo_select") {
+        // Handle todo_select interactions
+        const userId = interaction.user.id;
+        const selectedIndex = parseInt(interaction.values[0]);
+
+        // Ensure that the user has a to-do list
+        if (!todoLists[userId]) {
+            return interaction.reply({ content: "You don't have a to-do list yet.", ephemeral: true });
+        }
+
+        // Prevent the user from interacting with another user's to-do list
+        const creatorId = todoLists[userId].creatorId;
+
+        // If the to-do list was created by someone else, prevent interaction
+        if (creatorId !== userId) {
+            return interaction.reply({ content: "You can't modify someone else's to-do list!", ephemeral: true });
+        }
+
+        // Ensure the selected index is within range
+        if (selectedIndex < 0 || selectedIndex >= todoLists[userId].tasks.length) {
+            return interaction.reply({ content: "Invalid task selection.", ephemeral: true });
+        }
+
+        // Toggle task completion
+        todoLists[userId].tasks[selectedIndex].checked = !todoLists[userId].tasks[selectedIndex].checked;
+
+        // Save updated to-do lists
+        saveTodoLists();
+
+        // Update the message with the updated to-do list
+        await interaction.update({
+            embeds: [generateTodoEmbed(userId)],
+            components: [generateTodoDropdown(userId)],
+        }).catch(error => {
+            console.error('Error updating interaction:', error);
+            interaction.reply({ content: 'There was an error updating your to-do list.', ephemeral: true });
+        });
+    } else if (customId === "weekly_select") {
+        // Handle weekly_select interactions
+        const userId = interaction.user.id;
+        const selectedOption = interaction.values[0];
+        const startOfWeek = DateTime.fromISO(interaction.message.embeds[0].title.split(" ")[3], { zone: "Australia/Sydney" });
+
+        let newStartOfWeek;
+        if (selectedOption === "previous") {
+            newStartOfWeek = startOfWeek.minus({ weeks: 1 });
+        } else if (selectedOption === "next") {
+            newStartOfWeek = startOfWeek.plus({ weeks: 1 });
+        }
+
+        await interaction.deferUpdate();
+        sendWeeklyStatsEmbed(interaction, userId, newStartOfWeek);
     }
-
-    // Prevent the user from interacting with another user's to-do list
-    const creatorId = todoLists[userId].creatorId;
-
-    // If the to-do list was created by someone else, prevent interaction
-    if (creatorId !== userId) {
-        return interaction.reply({ content: "You can't modify someone else's to-do list!", ephemeral: true });
-    }
-
-    // Ensure the selected index is within range
-    if (selectedIndex < 0 || selectedIndex >= todoLists[userId].tasks.length) {
-        return interaction.reply({ content: "Invalid task selection.", ephemeral: true });
-    }
-
-    // Toggle task completion
-    todoLists[userId].tasks[selectedIndex].checked = !todoLists[userId].tasks[selectedIndex].checked;
-
-    // Save updated to-do lists
-    saveTodoLists();
-
-    // Update the message with the updated to-do list
-    await interaction.update({
-        embeds: [generateTodoEmbed(userId)],
-        components: [generateTodoDropdown(userId)],
-    }).catch(error => {
-        console.error('Error updating interaction:', error);
-        interaction.reply({ content: 'There was an error updating your to-do list.', ephemeral: true });
-    });
 });
 
 // Send the user's to-do list with dropdown
