@@ -412,11 +412,11 @@ client.on('messageCreate', (message) => {
             { name: '・ !t start [task name]', value: '୨୧ Starts the tracker'},
             { name: '・ !t end', value: '୨୧ Ends the tracker'},
             { name: '・ !t pause', value: '୨୧ Pauses active timer'},
-            { name: '・ !t unpauses', value: '୨୧ Continues active timer'},
+            { name: '・ !t unpause', value: '୨୧ Continues active timer'},
             { name: '・ !t duration', value: '୨୧ Check the duration of your tracker'},
-            { name: '・ !t today', value: "୨୧ Check today's stats"},
-            { name: '・ !t week', value: "୨୧ Starts this week's stats"},
-            { name: '・ !t month', value: "୨୧ Starts this month's stats"},
+            { name: '・ !t daily', value: "୨୧ Check today's stats"},
+            { name: '・ !t weekly', value: "୨୧ Starts this week's stats"},
+            { name: '・ !t monthly', value: "୨୧ Starts this month's stats"},
         )
         .setTimestamp()
         .setImage(`https://imgur.com/q2YQXz6`)
