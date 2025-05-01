@@ -85,14 +85,8 @@ client.once('ready', () => {
     client.user.setPresence({
         activities: [
             {
-                name: "Nancy's booba 💖", // The activity name
+                name: "Nancy's boobs 💖", // The activity name
                 type: ActivityType.Watching, // Activity type: PLAYING, STREAMING, LISTENING, WATCHING, COMPETING
-                details: 'I Love Nancy', // Optional: Details about the activity
-                state: '<3', // Optional: State of the activity
-                assets: {
-                    largeImage: 'img_4811', // Key for the large image uploaded in the Developer Portal
-                    largeText: '<3', // Text displayed when hovering over the large image
-                },
             },
         ],
         status: 'online', // Bot status: online, idle, dnd, invisible
