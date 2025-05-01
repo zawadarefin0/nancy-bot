@@ -44,11 +44,14 @@ client.once('ready', () => {
     scheduleDailyUpdate();
 
 
-    client.user.setPresence({
-        activities: [{ name: "with Zawad", type: ActivityType.LISTENING }],
-        status: 'online' // Other options: 'idle', 'dnd', 'invisible'
+    // client.user.setPresence({
+    //     activities: [{ name: "with Zawad", type: ActivityType.LISTENING }],
+    //     status: 'online' // Other options: 'idle', 'dnd', 'invisible'
 
-    });
+    // });
+
+
+
 
     loadStudyStats();
 
@@ -75,6 +78,28 @@ client.once('ready', () => {
     }
 });
 
+client.once('ready', () => {
+    console.log(`Logged in as ${client.user.tag}`);
+
+    // Set Rich Presence
+    client.user.setPresence({
+        activities: [
+            {
+                name: "Nancy's booba 💖", // The activity name
+                type: ActivityType.Watching, // Activity type: PLAYING, STREAMING, LISTENING, WATCHING, COMPETING
+                details: 'I Love Nancy', // Optional: Details about the activity
+                state: '<3', // Optional: State of the activity
+                assets: {
+                    largeImage: 'img_4811', // Key for the large image uploaded in the Developer Portal
+                    largeText: '<3', // Text displayed when hovering over the large image
+                },
+            },
+        ],
+        status: 'online', // Bot status: online, idle, dnd, invisible
+    });
+
+    console.log('Rich Presence set!');
+});
 
 // Function to calculate the delay until the next 6 PM
 function calculateDelayUntil6PM() {
