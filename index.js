@@ -1878,6 +1878,36 @@ function scheduleDailyUpdate() {
     console.log(`Scheduled the first update in ${Math.round(delay / 1000 / 60)} minutes.`);
 }
 
+// Function to automatically delete messages in #time 
+client.on('messageCreate', async (message) => {
+    const targetChannelId = '1345385715491536927'; // Replace with the ID of the channel you want to monitor
+    const allowedCommands = ['!duration', '!stats', '!topcalls']; // List of allowed commands
+
+    // Check if the message is in the target channel and not sent by the bot
+    if (message.channel.id === targetChannelId && !message.author.bot) {
+        // Check if the message content starts with one of the allowed commands
+        const isAllowedCommand = allowedCommands.some((command) => message.content.startsWith(command));
+
+        if (!isAllowedCommand) {
+            // Delete the message if it doesn't match the allowed commands
+            await message.delete().catch((error) => console.error('Failed to delete message:', error));
+        }
+    }
+});
+
+// Function to automatically delete any user message
+client.on('messageCreate', async (message) => {
+    const targetChannelIds = [
+        '1345359682969145384', // #pins
+        '1361031045004398718', // #updates
+        '1345362722367340616', // #misc
+    ]; 
+
+    if (targetChannelIds.includes(message.channel.id) && !message.author.bot) {
+        await message.delete().catch((error) => console.error('Failed to delete message:', error));
+    }
+});
+
 client.login(process.env.TOKEN);
 
 keepAlive();
