@@ -685,42 +685,43 @@ client.on("messageCreate", (message) => {
 });
 
 async function startTaskCheckIn(userId, taskName, channel) {
-    const CHECK_IN_INTERVAL = 15 * 60 * 1000; // 15 minutes
-    const CHECK_IN_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+    const CHECK_IN_INTERVAL = 10000; // 15 minutes
+    const CHECK_IN_TIMEOUT = 8000; // 5 minutes
+
+    // Clear any existing interval for this user
+    if (activeCheckInIntervals[userId]) {
+        clearInterval(activeCheckInIntervals[userId]);
+    }
 
     const checkInInterval = setInterval(async () => {
         // Check if the user still has an active session
         loadStudyStats();
         const session = studyStats[userId]?.activeSession;
-        if (!session || session.taskName !== taskName) {
-            clearInterval(checkInInterval); // Stop the check-in if the task is no longer active
+        if (!session || session.taskName !== taskName || session.paused) {
+            clearInterval(checkInInterval); // Stop the check-in if the task is no longer active or paused
+            delete activeCheckInIntervals[userId];
             return;
         }
 
         // Send a check-in message
         const checkInMessage = await channel.send({
-            content: `<@${userId}>, are you still working on **${taskName}**?`,
+            content: `<@${userId}>, are you still working on **${taskName}**? React with ✅ within 5 minutes to continue.`,
         });
 
         // React with a green check mark
         await checkInMessage.react("✅");
 
         // Create a reaction collector to wait for the user's response
-        const filter = (reaction, user) => {
-            console.log(`Reaction detected: ${reaction.emoji.name} by ${user.tag}`);
-            return reaction.emoji.name === "✅" && user.id === userId;
-        };
-
+        const filter = (reaction, user) => reaction.emoji.name === "✅" && user.id === userId;
         const collector = checkInMessage.createReactionCollector({ filter, time: CHECK_IN_TIMEOUT });
 
         let userReacted = false; // Track if the user reacted
 
         collector.on("collect", async (reaction, user) => {
             if (user.id === userId) {
-                console.log("user.id === userId successful");
                 userReacted = true; // Mark that the user has reacted
                 try {
-                    await checkInMessage.reply("Task continued.");
+                    await checkInMessage.reply("✅ Task continued! Keep up the good work!");
                 } catch (error) {
                     console.error("Failed to send 'Task continued' message:", error);
                 }
@@ -733,9 +734,13 @@ async function startTaskCheckIn(userId, taskName, channel) {
                 // User did not react in time, stop the task
                 stopTask(userId, channel);
                 clearInterval(checkInInterval); // Stop the periodic check-in
+                delete activeCheckInIntervals[userId];
             }
         });
     }, CHECK_IN_INTERVAL);
+
+    // Store the interval for this user
+    activeCheckInIntervals[userId] = checkInInterval;
 }
 
 // Function to stop a task
@@ -784,6 +789,9 @@ function stopTask(userId, channel) {
     });
 }
 
+// Store active check-in intervals for each user
+const activeCheckInIntervals = {};
+
 client.on("messageCreate", (message) => {
     if (message.content === "!t pause") {
         const userId = message.author.id;
@@ -810,6 +818,12 @@ client.on("messageCreate", (message) => {
         session.paused = true;
         session.pausedStartTime = currentTime; // Record when the session was paused
         saveStudyStats();
+
+        // Clear the periodic check-in interval for this user
+        if (activeCheckInIntervals[userId]) {
+            clearInterval(activeCheckInIntervals[userId]);
+            delete activeCheckInIntervals[userId];
+        }
 
         message.channel.send({
             embeds: [
@@ -846,6 +860,9 @@ client.on("messageCreate", (message) => {
         session.startTime = Date.now(); // Reset the start time to now
         delete session.pausedStartTime; // Remove the paused start time
         saveStudyStats();
+
+        // Restart the periodic check-in interval for this user
+        startTaskCheckIn(userId, session.taskName, message.channel);
 
         message.channel.send({
             embeds: [
