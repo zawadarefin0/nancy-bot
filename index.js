@@ -685,8 +685,8 @@ client.on("messageCreate", (message) => {
 });
 
 async function startTaskCheckIn(userId, taskName, channel) {
-    const CHECK_IN_INTERVAL = 10000; // 15 minutes
-    const CHECK_IN_TIMEOUT = 8000; // 5 minutes
+    const CHECK_IN_INTERVAL = 15 * 60 * 1000; // 15 minutes
+    const CHECK_IN_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
     // Clear any existing interval for this user
     if (activeCheckInIntervals[userId]) {
@@ -721,9 +721,18 @@ async function startTaskCheckIn(userId, taskName, channel) {
             if (user.id === userId) {
                 userReacted = true; // Mark that the user has reacted
                 try {
-                    await checkInMessage.reply("✅ Task continued! Keep up the good work!");
+                    // Delete the original check-in message
+                    await checkInMessage.delete().catch((error) => console.error("Failed to delete check-in message:", error));
+
+                    // Send a reply message
+                    const replyMessage = await channel.send("✅ Task continued! Keep up the good work!");
+
+                    // Automatically delete the reply message after 5 seconds
+                    setTimeout(() => {
+                        replyMessage.delete().catch((error) => console.error("Failed to delete reply message:", error));
+                    }, 5000);
                 } catch (error) {
-                    console.error("Failed to send 'Task continued' message:", error);
+                    console.error("Failed to handle reaction:", error);
                 }
                 collector.stop(); // Stop the collector after the user reacts
             }
