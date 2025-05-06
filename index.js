@@ -415,7 +415,8 @@ client.on('messageCreate', (message) => {
             .setDescription('Commands to operate the todolist:')
             .addFields(
                 { name: '・ !todo [item] [item2]', value: '୨୧ Add items to your todolist' },
-                { name: '・ !todo view', value: '୨୧ View your current Todo list.' }
+                { name: '・ !todo view', value: '୨୧ View your current Todo list.' },
+                { name: '・ !todo raw', value: '୨୧ View your current Todo list in original raw format.' }
             )
             .setTimestamp()
             .setImage(`https://imgur.com/q2YQXz6`)
