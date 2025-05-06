@@ -3,6 +3,7 @@ const fs = require("fs");
 const { DateTime } = require("luxon"); // Import Luxon
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ActivityType, Message } = require('discord.js');
 const keepAlive = require(`./server`);
+require('events').setMaxListeners(30); // Increase the limit to 20
 // const express = require('express');
 // const app = express();
 
