@@ -85,7 +85,7 @@ client.once('ready', () => {
     client.user.setPresence({
         activities: [
             {
-                name: "Nancy's boobs 💖", // The activity name
+                name: "you from your walls 💖", // The activity name
                 type: ActivityType.Watching, // Activity type: PLAYING, STREAMING, LISTENING, WATCHING, COMPETING
             },
         ],
