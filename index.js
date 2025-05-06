@@ -1738,6 +1738,36 @@ function generateTodoDropdown(userId) {
     return new ActionRowBuilder().addComponents(menu);
 }
 
+// Path to the todolist.json file
+const todoListPath = path.join(__dirname, 'todolist.json');
+
+// Command to get the raw to-do list
+client.on('messageCreate', async (message) => {
+    if (message.content === '!todo raw') {
+        const userId = message.author.id;
+
+        // Load the to-do list from the JSON file
+        let todoList;
+        try {
+            todoList = JSON.parse(fs.readFileSync(todoListPath, 'utf8'));
+        } catch (error) {
+            console.error('Failed to load the to-do list:', error);
+            return message.channel.send('❌ Failed to load your to-do list. Please try again later.');
+        }
+
+        // Check if the user has a to-do list
+        if (!todoList[userId] || !todoList[userId].tasks || todoList[userId].tasks.length === 0) {
+            return message.channel.send('❌ You do not have any tasks in your to-do list.');
+        }
+
+        // Extract the task names and format them with square brackets
+        const rawTasks = todoList[userId].tasks.map((task) => `[${task.text}]`).join(' ');
+
+        // Send the raw tasks to the user
+        return message.channel.send(`**Here is your raw to-do list:**\n\n${rawTasks}`);
+    }
+});
+
 client.on('messageCreate', (message) => {
     if (message.content === '!topcalls') {
         // Sort call durations by duration in descending order and get the top 10
