@@ -1883,13 +1883,10 @@ client.on('messageCreate', async (message) => {
     const targetChannelId = '1345385715491536927'; // Replace with the ID of the channel you want to monitor
     const allowedCommands = ['!duration', '!stats', '!topcalls']; // List of allowed commands
 
-    // Check if the message is in the target channel and not sent by the bot
     if (message.channel.id === targetChannelId && !message.author.bot) {
-        // Check if the message content starts with one of the allowed commands
         const isAllowedCommand = allowedCommands.some((command) => message.content.startsWith(command));
 
         if (!isAllowedCommand) {
-            // Delete the message if it doesn't match the allowed commands
             await message.delete().catch((error) => console.error('Failed to delete message:', error));
         }
     }
