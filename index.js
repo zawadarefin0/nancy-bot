@@ -97,52 +97,52 @@ client.once('ready', () => {
 });
 
 // Function to calculate the delay until the next 6 PM
-function calculateDelayUntil6PM() {
-    const now = new Date();
-    const next6PM = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        18, 0, 0, 0 // Set time to 6:00 PM
-    );
-
+// function calculateDelayUntil6PM() {
+//     const now = new Date();
+//     const next6PM = new Date(
+//         now.getFullYear(),
+//         now.getMonth(),
+//         now.getDate(),
+//         18, 0, 0, 0 // Set time to 6:00 PM
+//     );
+// 
     // If it's already past 6 PM, schedule for the next day
-    if (now > next6PM) {
-        next6PM.setDate(next6PM.getDate() + 1);
-    }
-
-    return next6PM - now; // Difference in milliseconds
-}
+//     if (now > next6PM) {
+//         next6PM.setDate(next6PM.getDate() + 1);
+//     }
+// 
+//     return next6PM - now; // Difference in milliseconds
+// }
 
 // Function to send a daily message
-function scheduleDailyMessage() {
-    const delay = calculateDelayUntil6PM();
+// function scheduleDailyMessage() {
+//     const delay = calculateDelayUntil6PM();
+//
+//     setTimeout(() => {
+//         // Send the message at 6 PM
+//         const channel = client.channels.cache.get('1345359086593507341'); // Replace with your channel ID
 
-    setTimeout(() => {
-        // Send the message at 6 PM
-        const channel = client.channels.cache.get('1345359086593507341'); // Replace with your channel ID
-
-        if (channel) {
-            channel.send("@everyone Reminder to do Cozy.").catch(console.error);
-        } else {
-            console.error('Channel not found for daily message.');
-        }
-
-        // Schedule the next message for the following day
-        setInterval(() => {
-            if (channel) {
-                channel.send("@everyone Reminder to do Cozy.").catch(console.error);
-            } else {
-                console.error('Channel not found for daily message.');
-            }
-        }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
-    }, delay);
-
-    console.log(`Scheduled the first daily message in ${Math.round(delay / 1000 / 60)} minutes.`);
-}
+//         if (channel) {
+//             channel.send("@everyone Reminder to do Cozy.").catch(console.error);
+//         } else {
+//             console.error('Channel not found for daily message.');
+//         }
+// 
+//         // Schedule the next message for the following day
+//         setInterval(() => {
+//             if (channel) {
+//                 channel.send("@everyone Reminder to do Cozy.").catch(console.error);
+//             } else {
+//                 console.error('Channel not found for daily message.');
+//             }
+//         }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+//     }, delay);
+// 
+//     console.log(`Scheduled the first daily message in ${Math.round(delay / 1000 / 60)} minutes.`);
+// }
 
 // Call the function to schedule the daily message
-scheduleDailyMessage();
+// scheduleDailyMessage();
 
 client.on('messageCreate', async (message) => {
     if (message.content === '!shutdown') {
